@@ -25,3 +25,4 @@ dist-ssr
 
 #API keys and sensitive files
 .env.local
+".env.local" 
