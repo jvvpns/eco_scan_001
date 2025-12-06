@@ -40,8 +40,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/30 focus:outline-none focus:ring-2 focus:ring-green-400 transition text-white placeholder-gray-400"
                 id="password"
                 type="password"
-                placeholder="••••••••"
-                defaultValue="password"
+                placeholder="••••••••••••••••••••••••"
+                defaultValue="thisisademopassword01!*"
               />
             </div>
             <button
