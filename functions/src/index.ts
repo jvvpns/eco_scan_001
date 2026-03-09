@@ -1,5 +1,8 @@
 import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 import { GoogleGenAI, Type } from "@google/genai";
+
+admin.initializeApp();
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY!,
@@ -7,14 +10,30 @@ const ai = new GoogleGenAI({
 
 export const identify = functions.https.onRequest(async (req, res) => {
     try {
+        // Verify Firebase Auth token
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        const token = authHeader.split('Bearer ')[1];
+        try {
+            await admin.auth().verifyIdToken(token);
+        } catch (error) {
+            res.status(401).json({ error: 'Invalid token' });
+            return;
+        }
+
         if (req.method !== "POST") {
-            return res.status(405).json({ error: "Method not allowed" });
+            res.status(405).json({ error: "Method not allowed" });
+            return;
         }
 
         const { image } = req.body;
 
         if (!image) {
-            return res.status(400).json({ error: "Image is required" });
+            res.status(400).json({ error: "Image is required" });
+            return;
         }
 
         const response = await ai.models.generateContent({
@@ -81,10 +100,10 @@ No explanation outside JSON.
 
         const result = JSON.parse(response.text);
 
-        return res.status(200).json(result);
+        res.status(200).json(result);
     } catch (error) {
         console.error("Gemini error:", error);
-        return res.status(500).json({
+        res.status(500).json({
             error: "Failed to identify item",
         });
     }
