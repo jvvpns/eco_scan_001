@@ -4,7 +4,7 @@ import { processScanResult, BADGES } from '../services/gamificationService';
 import { saveScanRecord } from '../services/firestoreService';
 import { IconCamera, IconArrowLeft, IconUpload, IconRecycle, IconTrash } from './Icons';
 import { GarbageType } from '../types';
-import { useAuth } from '../hooks/useAuth'; // adjust path if needed
+import { useAuth } from '../hooks/useAuth';
 
 // ─── TYPES ────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ const CATEGORIES = [
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
 const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
-  const { user, userStats, unlockedBadgeIds } = useAuth();
+  const { user, unlockedBadgeIds, refreshStats } = useAuth(); // ← added refreshStats
 
   const [step, setStep] = useState<ScanStep>('camera');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -139,14 +139,12 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   useEffect(() => {
     if (step !== 'result') return;
 
-    // Show badge animation first if any
     if (scanResult?.newlyUnlockedBadges.length) {
       const badgeId = scanResult.newlyUnlockedBadges[0];
       setShowBadgeAnim(badgeId);
       setTimeout(() => setShowBadgeAnim(null), 2500);
     }
 
-    // Countdown then redirect
     setRedirectCountdown(3);
     const interval = setInterval(() => {
       setRedirectCountdown(prev => {
@@ -214,7 +212,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       const isCorrect = categoryId.toLowerCase() === aiAnswer.toLowerCase();
 
       // 2. Process gamification (points, streak, badges, missions)
-      const { updatedStats, pointsEarned, newlyUnlockedBadges } =
+      const { pointsEarned, newlyUnlockedBadges } =
         await processScanResult(user.uid, isCorrect, unlockedBadgeIds ?? []);
 
       // 3. Save scan record to Firestore
@@ -225,7 +223,10 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
         pointsEarned,
       });
 
-      // 4. Update parent state (for any local state that still needs it)
+      // 4. Refresh dashboard stats live ← NEW
+      await refreshStats();
+
+      // 5. Update parent state
       onScanComplete({
         name: result.itemName,
         type: result.garbageType,
@@ -326,7 +327,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     );
   }
 
-  // STEP: CLASSIFY (user selects category)
+  // STEP: CLASSIFY
   if (step === 'classify') {
     return (
       <div className="flex flex-col min-h-full bg-gray-50">
@@ -343,7 +344,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         </div>
 
-        {/* Image preview thumbnail */}
         {imagePreview && (
           <div className="mx-4 mt-4 rounded-xl overflow-hidden h-40 bg-black">
             <img src={imagePreview} alt="Captured item" className="w-full h-full object-contain" />
@@ -374,7 +374,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     );
   }
 
-  // STEP: SCANNING (loading)
+  // STEP: SCANNING
   if (step === 'scanning') {
     return (
       <div className="flex flex-col items-center justify-center min-h-full bg-gray-50 gap-6 p-8">
@@ -408,7 +408,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-full bg-white p-6 gap-5 relative">
 
-        {/* Badge unlock animation overlay */}
         {showBadgeAnim && unlockedBadge && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-70 animate-fade-in">
             <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-2xl animate-bounce-in">
@@ -420,12 +419,10 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         )}
 
-        {/* Result icon */}
         <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
           <span className="text-4xl">{isCorrect ? '✅' : '❌'}</span>
         </div>
 
-        {/* Result title */}
         <div className="text-center">
           <p className={`text-2xl font-extrabold ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
             {isCorrect ? 'Correct! 🎉' : 'Not quite right'}
@@ -435,7 +432,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </p>
         </div>
 
-        {/* Answer comparison */}
         <div className="flex gap-3 w-full">
           <div className={`flex-1 rounded-xl p-4 text-center border ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
             <p className="text-xs text-gray-500 mb-1">Your Answer</p>
@@ -447,7 +443,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         </div>
 
-        {/* Tip if incorrect */}
         {!isCorrect && (
           <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
             <p className="text-sm text-gray-600 text-center">
@@ -457,7 +452,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         )}
 
-        {/* Newly unlocked badges */}
         {newlyUnlockedBadges.length > 0 && !showBadgeAnim && (
           <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-center">
             <p className="text-sm font-bold text-yellow-700">
@@ -466,7 +460,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         )}
 
-        {/* Score + countdown */}
         <div className="bg-gray-100 rounded-full px-6 py-2">
           <p className="text-gray-700 font-semibold text-sm">
             Returning to Dashboard in {redirectCountdown}s...

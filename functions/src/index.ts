@@ -98,7 +98,8 @@ No explanation outside JSON.
             },
         });
 
-        const result = JSON.parse(response.text);
+        const rawText = response.text ?? '{}';
+        const result = JSON.parse(rawText);
 
         res.status(200).json(result);
     } catch (error) {

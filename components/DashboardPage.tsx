@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ScannedItem, GarbageType } from '../types';
 import { Page } from '../types';
+import { useAuth } from '../hooks/useAuth';
 
 // ─── PROPS ────────────────────────────────────────────────────
 
@@ -12,17 +13,7 @@ interface DashboardPageProps {
   currentPage: Page;
 }
 
-// ─── MOCK DATA (replace with Firestore later) ─────────────────
-
-const MOCK_STATS = {
-  ecoPoints: 0,
-  level: 1,
-  streak: 0,
-  itemsClassified: 0,
-  co2Saved: 0,
-  wasteDiverted: 0,
-  treesSaved: 0,
-};
+// ─── ECO TIPS ─────────────────────────────────────────────────
 
 const MOCK_ECO_TIPS = [
   "Special waste like batteries should never go in regular bins.",
@@ -108,6 +99,16 @@ const ImpactCard: React.FC<{
   </div>
 );
 
+// ─── LOADING SKELETON ─────────────────────────────────────────
+
+const StatSkeleton = () => (
+  <div className="flex-1 rounded-2xl p-3 flex flex-col items-center gap-1 bg-gray-200 animate-pulse">
+    <div className="w-6 h-6 bg-gray-300 rounded-full" />
+    <div className="w-10 h-5 bg-gray-300 rounded" />
+    <div className="w-14 h-3 bg-gray-300 rounded" />
+  </div>
+);
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
 const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -118,15 +119,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   currentPage,
 }) => {
   const [tipDismissed, setTipDismissed] = useState(false);
-  const stats = MOCK_STATS;
+  const { userStats, loading, user } = useAuth();
   const dailyTip = getDailyTip();
 
+  // Use live Firestore stats, fall back to 0 while loading
+  const stats = {
+    ecoPoints:       userStats?.ecoPoints       ?? 0,
+    level:           userStats?.level           ?? 1,
+    streak:          userStats?.streak          ?? 0,
+    itemsClassified: userStats?.itemsClassified ?? 0,
+    co2Saved:        userStats?.co2Saved        ?? 0,
+    wasteDiverted:   userStats?.wasteDiverted   ?? 0,
+    treesSaved:      userStats?.treesSaved      ?? 0,
+  };
+
   const navItems = [
-    { page: Page.DASHBOARD, label: 'Home', icon: (active: boolean) => <HomeIcon active={active} /> },
-    { page: Page.TIER, label: 'Missions', icon: (active: boolean) => <MissionsIcon active={active} /> },
-    { page: null, label: 'Scan', icon: () => null }, // center scan button placeholder
-    { page: Page.PROFILE, label: 'Leaders', icon: (active: boolean) => <LeaderboardIcon active={active} /> },
-    { page: Page.SETTINGS, label: 'Profile', icon: (active: boolean) => <ProfileIcon active={active} /> },
+    { page: Page.DASHBOARD, label: 'Home',     icon: (active: boolean) => <HomeIcon active={active} /> },
+    { page: Page.TIER,      label: 'Missions', icon: (active: boolean) => <MissionsIcon active={active} /> },
+    { page: null,           label: 'Scan',     icon: () => null },
+    { page: Page.PROFILE,   label: 'Leaders',  icon: (active: boolean) => <LeaderboardIcon active={active} /> },
+    { page: Page.SETTINGS,  label: 'Profile',  icon: (active: boolean) => <ProfileIcon active={active} /> },
   ];
 
   return (
@@ -142,7 +154,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <h1 className="text-gray-900 font-black text-lg leading-tight tracking-tight">
               Waste Classifier
             </h1>
-            <p className="text-gray-500 text-xs font-medium">Learn, Play, and Save the Planet</p>
+            <p className="text-gray-500 text-xs font-medium">
+              {user?.displayName
+                ? `Welcome, ${user.displayName.split(' ')[0]}!`
+                : 'Learn, Play, and Save the Planet'}
+            </p>
           </div>
         </div>
         <button className="relative w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 transition">
@@ -156,9 +172,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
         {/* GAMIFICATION STATS */}
         <div className="flex gap-3">
-          <StatCard label="EcoPoints" value={stats.ecoPoints} color="bg-green-500" emoji="🌿" />
-          <StatCard label="Level" value={stats.level} color="bg-blue-500" emoji="⭐" />
-          <StatCard label="Streak" value={`${stats.streak}🔥`} color="bg-orange-500" emoji="" />
+          {loading ? (
+            <>
+              <StatSkeleton />
+              <StatSkeleton />
+              <StatSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard label="EcoPoints" value={stats.ecoPoints}          color="bg-green-500"  emoji="🌿" />
+              <StatCard label="Level"     value={stats.level}              color="bg-blue-500"   emoji="⭐" />
+              <StatCard label="Streak"    value={`${stats.streak}🔥`}      color="bg-orange-500" emoji=""   />
+            </>
+          )}
         </div>
 
         {/* DAILY ECO TIP */}
@@ -190,34 +216,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           </div>
           <div className="flex gap-2">
-            <ImpactCard
-              label="Items Classified"
-              value={stats.itemsClassified}
-              unit="items"
-              emoji="🏅"
-              bg="bg-blue-50"
-            />
-            <ImpactCard
-              label="CO₂ Saved"
-              value={stats.co2Saved}
-              unit="kg"
-              emoji="🌱"
-              bg="bg-green-50"
-            />
-            <ImpactCard
-              label="Waste Diverted"
-              value={stats.wasteDiverted}
-              unit="kg"
-              emoji="♻️"
-              bg="bg-purple-50"
-            />
-            <ImpactCard
-              label="Trees Saved"
-              value={stats.treesSaved}
-              unit="trees"
-              emoji="🌳"
-              bg="bg-emerald-50"
-            />
+            <ImpactCard label="Items Classified" value={stats.itemsClassified} unit="items" emoji="🏅" bg="bg-blue-50"    />
+            <ImpactCard label="CO₂ Saved"        value={stats.co2Saved}        unit="kg"    emoji="🌱" bg="bg-green-50"   />
+            <ImpactCard label="Waste Diverted"   value={stats.wasteDiverted}   unit="kg"    emoji="♻️" bg="bg-purple-50"  />
+            <ImpactCard label="Trees Saved"      value={stats.treesSaved}      unit="trees" emoji="🌳" bg="bg-emerald-50" />
           </div>
         </div>
 
@@ -271,7 +273,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-xl z-20">
         <div className="flex items-end justify-around px-2 pt-2 pb-3">
           {navItems.map((item, index) => {
-            // Center scan button
             if (item.page === null) {
               return (
                 <div key="scan" className="flex flex-col items-center -mt-6">
