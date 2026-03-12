@@ -7,7 +7,6 @@ const POINTS_PER_CORRECT_SCAN = 10;
 const POINTS_PER_WRONG_SCAN = 0;
 const POINTS_PER_LEVEL = 100;
 
-// Environmental impact constants per scan
 const CO2_PER_SCAN_KG = 0.05;
 const WASTE_PER_SCAN_KG = 0.02;
 const TREES_PER_100_POINTS = 1;
@@ -97,54 +96,31 @@ export const MISSIONS = [
   },
 ];
 
-// ─── CORE GAMIFICATION LOGIC ──────────────────────────────────
+// ─── HELPERS ──────────────────────────────────────────────────
 
-/**
- * Calculate what level a user should be at based on their EcoPoints.
- */
-export const calculateLevel = (ecoPoints: number): number => {
-  return Math.floor(ecoPoints / POINTS_PER_LEVEL) + 1;
-};
+export const calculateLevel = (ecoPoints: number): number =>
+  Math.floor(ecoPoints / POINTS_PER_LEVEL) + 1;
 
-/**
- * Calculate environmental impact stats based on total scans and points.
- */
-export const calculateEnvironmentalImpact = (
-  totalScans: number,
-  ecoPoints: number
-) => ({
-  co2Saved: parseFloat((totalScans * CO2_PER_SCAN_KG).toFixed(2)),
+export const calculateEnvironmentalImpact = (totalScans: number, ecoPoints: number) => ({
+  co2Saved:      parseFloat((totalScans * CO2_PER_SCAN_KG).toFixed(2)),
   wasteDiverted: parseFloat((totalScans * WASTE_PER_SCAN_KG).toFixed(2)),
-  treesSaved: parseFloat((Math.floor(ecoPoints / 100) * TREES_PER_100_POINTS).toFixed(1)),
+  treesSaved:    parseFloat((Math.floor(ecoPoints / 100) * TREES_PER_100_POINTS).toFixed(1)),
 });
 
-/**
- * Get today's date string in YYYY-MM-DD format.
- */
-const getTodayString = (): string => {
-  return new Date().toISOString().split('T')[0];
-};
+const getTodayString = (): string => new Date().toISOString().split('T')[0];
 
-/**
- * Get yesterday's date string in YYYY-MM-DD format.
- */
 const getYesterdayString = (): string => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   return yesterday.toISOString().split('T')[0];
 };
 
-/**
- * Main function — call this after every scan completes.
- * Handles points, level, streak, environmental impact,
- * badge unlocks, and mission progress all in one go.
- *
- * Returns the updated stats so the UI can reflect changes immediately.
- */
+// ─── CORE GAMIFICATION LOGIC ──────────────────────────────────
+
 export const processScanResult = async (
   userId: string,
   isCorrect: boolean,
-  unlockedBadgeIds: string[] // pass in already-unlocked badge IDs to avoid re-unlocking
+  unlockedBadgeIds: string[]
 ): Promise<{
   updatedStats: UserStats;
   pointsEarned: number;
@@ -158,57 +134,53 @@ export const processScanResult = async (
   const yesterday = getYesterdayString();
   const pointsEarned = isCorrect ? POINTS_PER_CORRECT_SCAN : POINTS_PER_WRONG_SCAN;
 
-  // ── Streak logic ──
+  // ── Streak ──
   let newStreak = currentStats.streak;
   if (isCorrect) {
-    if (
+    newStreak = (
       currentStats.lastScanDate === today ||
       currentStats.lastScanDate === yesterday
-    ) {
-      newStreak = currentStats.streak + 1;
-    } else {
-      newStreak = 1; // reset streak if gap in days
-    }
+    ) ? currentStats.streak + 1 : 1;
   } else {
-    newStreak = 0; // wrong answer breaks streak
+    newStreak = 0;
   }
 
   // ── Points & level ──
-  const newPoints = currentStats.ecoPoints + pointsEarned;
-  const newLevel = calculateLevel(newPoints);
-
-  // ── Scan counts ──
-  const newTotalScans = currentStats.totalScans + 1;
+  const newPoints      = currentStats.ecoPoints + pointsEarned;
+  const newLevel       = calculateLevel(newPoints);
+  const newTotalScans  = currentStats.totalScans + 1;
   const newCorrectScans = currentStats.correctScans + (isCorrect ? 1 : 0);
-
-  // ── Environmental impact ──
-  const impact = calculateEnvironmentalImpact(newTotalScans, newPoints);
+  const impact         = calculateEnvironmentalImpact(newTotalScans, newPoints);
 
   const updatedStats: UserStats = {
     ...currentStats,
-    ecoPoints: newPoints,
-    level: newLevel,
-    streak: newStreak,
-    lastScanDate: today,
-    totalScans: newTotalScans,
-    correctScans: newCorrectScans,
+    ecoPoints:       newPoints,
+    level:           newLevel,
+    streak:          newStreak,
+    lastScanDate:    today,
+    totalScans:      newTotalScans,
+    correctScans:    newCorrectScans,
     itemsClassified: newTotalScans,
-    co2Saved: impact.co2Saved,
-    wasteDiverted: impact.wasteDiverted,
-    treesSaved: impact.treesSaved,
+    co2Saved:        impact.co2Saved,
+    wasteDiverted:   impact.wasteDiverted,
+    treesSaved:      impact.treesSaved,
   };
 
-  // ── Save to Firestore ──
+  // ── Save stats ──
   await updateUserStats(userId, updatedStats);
+
+  // ── Sync leaderboard — include username & avatarUrl ──
   await updateLeaderboardEntry(userId, {
     displayName: updatedStats.displayName,
-    ecoPoints: updatedStats.ecoPoints,
-    level: updatedStats.level,
+    username:    updatedStats.username   ?? '',
+    avatarUrl:   updatedStats.avatarUrl  ?? '',
+    ecoPoints:   updatedStats.ecoPoints,
+    level:       updatedStats.level,
     correctScans: updatedStats.correctScans,
-    totalScans: updatedStats.totalScans,
+    totalScans:  updatedStats.totalScans,
   });
 
-  // ── Check badge unlocks ──
+  // ── Badge unlocks ──
   const newlyUnlockedBadges: string[] = [];
   for (const badge of BADGES) {
     if (!unlockedBadgeIds.includes(badge.id) && badge.check(updatedStats)) {
@@ -217,21 +189,14 @@ export const processScanResult = async (
     }
   }
 
-  // ── Check mission completions ──
+  // ── Mission progress ──
   const completedMissions: string[] = [];
   for (const mission of MISSIONS) {
-    const progress = mission.getProgress(updatedStats);
+    const progress  = mission.getProgress(updatedStats);
     const completed = progress >= mission.target;
     await updateMissionProgress(userId, mission.id, progress, completed);
-    if (completed) {
-      completedMissions.push(mission.id);
-    }
+    if (completed) completedMissions.push(mission.id);
   }
 
-  return {
-    updatedStats,
-    pointsEarned,
-    newlyUnlockedBadges,
-    completedMissions,
-  };
+  return { updatedStats, pointsEarned, newlyUnlockedBadges, completedMissions };
 };

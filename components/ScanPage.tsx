@@ -19,13 +19,7 @@ interface ScanResult {
 }
 
 interface ScanPageProps {
-  onScanComplete: (item: {
-    name: string;
-    type: GarbageType;
-    points: number;
-    image: string;
-    description?: string;
-  }) => void;
+  onScanComplete: () => void;  // just signals completion; data is in Firestore
   onBack: () => void;
 }
 
@@ -61,6 +55,26 @@ const CATEGORIES = [
     hoverColor: 'hover:bg-green-600',
   },
 ];
+
+// ─── IMAGE COMPRESSION ────────────────────────────────────────
+// Resizes a base64 image to a small thumbnail for Firestore storage
+
+const compressImage = (dataUrl: string, maxSize: number = 120): string => {
+  try {
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.src = dataUrl;
+    const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.6);
+  } catch {
+    return dataUrl;
+  }
+};
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
@@ -215,25 +229,22 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       const { pointsEarned, newlyUnlockedBadges } =
         await processScanResult(user.uid, isCorrect, unlockedBadgeIds ?? []);
 
-      // 3. Save scan record to Firestore
+      // 3. Save scan record to Firestore (with item name + compressed thumbnail)
+      const thumbnail = compressImage(imagePreview, 120);
       await saveScanRecord(user.uid, user.displayName ?? 'Anonymous', {
+        itemName: result.itemName ?? 'Unknown Item',
         userAnswer: categoryId,
         aiAnswer,
         isCorrect,
         pointsEarned,
+        imageUrl: thumbnail,
       });
 
       // 4. Refresh dashboard stats live ← NEW
       await refreshStats();
 
-      // 5. Update parent state
-      onScanComplete({
-        name: result.itemName,
-        type: result.garbageType,
-        points: pointsEarned,
-        image: imagePreview,
-        description: result.description,
-      });
+      // 5. Signal completion to App (data is already in Firestore)
+      onScanComplete();
 
       setScanResult({
         isCorrect,

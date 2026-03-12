@@ -1,29 +1,25 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import LoginPage from './components/LoginPage';
 import DashboardPage from './components/DashboardPage';
 import ScanPage from './components/ScanPage';
 import MissionsPage from './components/MissionsPage';
 import ProfilePage from './components/ProfilePage';
-import { Page, ScannedItem } from './types';
+import { Page } from './types';
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
-import { logoutUser } from "./services/authService";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(Page.LOGIN);
-  const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  // Incremented after each scan so DashboardPage re-fetches recent scans
+  const [scanRefreshTrigger, setScanRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       setAuthLoading(false);
-      if (user) {
-        setCurrentPage(Page.DASHBOARD);
-      } else {
-        setCurrentPage(Page.LOGIN);
-      }
+      setCurrentPage(user ? Page.DASHBOARD : Page.LOGIN);
     });
     return () => unsubscribe();
   }, []);
@@ -32,28 +28,11 @@ function App() {
     setCurrentPage(page);
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    await logoutUser();
-    setScannedItems([]);
-  }, []);
-
-  const addScannedItem = useCallback(
-    (item: Omit<ScannedItem, 'id' | 'timestamp'>) => {
-      setScannedItems((prevItems) => [
-        {
-          ...item,
-          id: `item-${Date.now()}`,
-          timestamp: new Date(),
-        },
-        ...prevItems,
-      ]);
-    },
-    []
-  );
-
-  const totalScore = useMemo(() => {
-    return scannedItems.reduce((total, item) => total + item.points, 0);
-  }, [scannedItems]);
+  const handleScanComplete = useCallback(() => {
+    // Bump trigger so dashboard re-fetches scans from Firestore
+    setScanRefreshTrigger(n => n + 1);
+    navigateTo(Page.DASHBOARD);
+  }, [navigateTo]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -63,18 +42,17 @@ function App() {
       case Page.DASHBOARD:
         return (
           <DashboardPage
-            scannedItems={scannedItems}
-            totalScore={totalScore}
             onScanClick={() => navigateTo(Page.SCAN)}
             onNavigate={navigateTo}
             currentPage={currentPage}
+            refreshTrigger={scanRefreshTrigger}
           />
         );
 
       case Page.SCAN:
         return (
           <ScanPage
-            onScanComplete={addScannedItem}
+            onScanComplete={handleScanComplete}
             onBack={() => navigateTo(Page.DASHBOARD)}
           />
         );
@@ -87,15 +65,12 @@ function App() {
           />
         );
 
-      // Placeholders — will be replaced in later phases
       case Page.PROFILE:
         return (
-          <DashboardPage
-            scannedItems={scannedItems}
-            totalScore={totalScore}
-            onScanClick={() => navigateTo(Page.SCAN)}
+          <MissionsPage
             onNavigate={navigateTo}
             currentPage={currentPage}
+            defaultTab="leaderboard"
           />
         );
 
@@ -123,9 +98,7 @@ function App() {
     );
   }
 
-  if (!firebaseUser) {
-    return <LoginPage />;
-  }
+  if (!firebaseUser) return <LoginPage />;
 
   return (
     <div className="relative min-h-screen w-full font-sans antialiased">
