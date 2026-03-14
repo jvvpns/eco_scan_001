@@ -188,7 +188,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
             onClick={openEditModal}
             className="mt-4 w-full bg-green-50 border border-green-200 text-green-700 font-bold text-sm rounded-xl py-2.5 active:scale-95 transition hover:bg-green-100"
           >
-            Edit Profile
+            ✏️ Edit Profile
           </button>
         </div>
 
@@ -251,7 +251,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
       {/* ── EDIT PROFILE MODAL ─────────────────────────────── */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 space-y-4 animate-slide-up">
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-gray-900 font-black text-lg">Edit Profile</h3>
               <button onClick={() => setShowEditModal(false)} className="text-gray-400 text-2xl leading-none">×</button>

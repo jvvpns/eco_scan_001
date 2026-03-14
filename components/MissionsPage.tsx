@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Page } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { BADGES, MISSIONS } from '../services/gamificationService';
@@ -27,6 +27,7 @@ interface MissionRecord {
 interface MissionsPageProps {
   onNavigate: (page: Page) => void;
   currentPage: Page;
+  defaultTab?: Tab;
 }
 
 type Tab = 'missions' | 'badges' | 'leaderboard';
@@ -70,15 +71,19 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
     </div>
     {MISSIONS.map(mission => {
       const record = userMissions.find(m => m.id === mission.id);
-      const progress = userStats ? mission.getProgress(userStats) : (record?.progress ?? 0);
-      const completed = record?.completed ?? false;
-      const pct = Math.min((progress / mission.target) * 100, 100);
+
+      // Always derive progress + completed live from userStats so deletes
+      // are immediately reflected without a separate Firestore re-fetch
+      const liveProgress = userStats ? mission.getProgress(userStats) : (record?.progress ?? 0);
+      const liveCompleted = liveProgress >= mission.target;
+      const pct = Math.min((liveProgress / mission.target) * 100, 100);
+
       return (
-        <div key={mission.id} className={`bg-white rounded-2xl p-4 shadow-sm border ${completed ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
+        <div key={mission.id} className={`bg-white rounded-2xl p-4 shadow-sm border ${liveCompleted ? 'border-green-200 bg-green-50' : 'border-gray-100'}`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${completed ? 'bg-green-100' : 'bg-orange-50'}`}>
-                {completed ? '✅' : mission.icon}
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${liveCompleted ? 'bg-green-100' : 'bg-orange-50'}`}>
+                {liveCompleted ? '✅' : mission.icon}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-gray-800 text-sm">{mission.name}</p>
@@ -93,10 +98,15 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
           <div className="mt-3">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-gray-500">Progress</span>
-              <span className="text-xs font-semibold text-gray-600">{Math.min(progress, mission.target)} / {mission.target}</span>
+              <span className="text-xs font-semibold text-gray-600">
+                {Math.min(liveProgress, mission.target)} / {mission.target}
+              </span>
             </div>
             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full transition-all duration-500 ${completed ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${pct}%` }} />
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${liveCompleted ? 'bg-green-500' : 'bg-orange-400'}`}
+                style={{ width: `${pct}%` }}
+              />
             </div>
           </div>
         </div>
@@ -107,32 +117,42 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
 
 // ─── BADGES TAB ───────────────────────────────────────────────
 
-const BadgesTab: React.FC<{ unlockedBadgeIds: string[] }> = ({ unlockedBadgeIds }) => (
-  <div>
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2">
-        <span className="text-xl">🎖️</span>
-        <h2 className="text-gray-900 font-black text-lg">Badges</h2>
+const BadgesTab: React.FC<{ unlockedBadgeIds: string[]; userStats: any }> = ({ unlockedBadgeIds, userStats }) => {
+  // Re-evaluate each badge live against current userStats so deletes that
+  // drop stats below a badge threshold reflect immediately
+  const effectiveUnlocked = BADGES
+    .filter(b => unlockedBadgeIds.includes(b.id) || (userStats && b.check(userStats)))
+    .map(b => b.id);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🎖️</span>
+          <h2 className="text-gray-900 font-black text-lg">Badges</h2>
+        </div>
+        <span className="text-gray-500 text-sm font-semibold">
+          {effectiveUnlocked.length} / {BADGES.length} Unlocked
+        </span>
       </div>
-      <span className="text-gray-500 text-sm font-semibold">{unlockedBadgeIds.length} / {BADGES.length} Unlocked</span>
-    </div>
-    <div className="grid grid-cols-2 gap-3">
-      {BADGES.map(badge => {
-        const isUnlocked = unlockedBadgeIds.includes(badge.id);
-        return (
-          <div key={badge.id} className={`rounded-2xl p-4 flex flex-col items-center gap-2 border text-center ${isUnlocked ? 'bg-yellow-50 border-yellow-200 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl ${isUnlocked ? 'bg-yellow-100' : 'bg-gray-200'}`}>
-              {isUnlocked ? badge.icon : '🔒'}
+      <div className="grid grid-cols-2 gap-3">
+        {BADGES.map(badge => {
+          const isUnlocked = effectiveUnlocked.includes(badge.id);
+          return (
+            <div key={badge.id} className={`rounded-2xl p-4 flex flex-col items-center gap-2 border text-center ${isUnlocked ? 'bg-yellow-50 border-yellow-200 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl ${isUnlocked ? 'bg-yellow-100' : 'bg-gray-200'}`}>
+                {isUnlocked ? badge.icon : '🔒'}
+              </div>
+              <p className={`font-bold text-sm ${isUnlocked ? 'text-gray-800' : 'text-gray-400'}`}>{badge.name}</p>
+              <p className={`text-xs leading-tight ${isUnlocked ? 'text-gray-500' : 'text-gray-400'}`}>{badge.description}</p>
+              {isUnlocked && <span className="text-xs text-yellow-600 font-bold bg-yellow-100 px-2 py-0.5 rounded-full">Unlocked ✓</span>}
             </div>
-            <p className={`font-bold text-sm ${isUnlocked ? 'text-gray-800' : 'text-gray-400'}`}>{badge.name}</p>
-            <p className={`text-xs leading-tight ${isUnlocked ? 'text-gray-500' : 'text-gray-400'}`}>{badge.description}</p>
-            {isUnlocked && <span className="text-xs text-yellow-600 font-bold bg-yellow-100 px-2 py-0.5 rounded-full">Unlocked ✓</span>}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── LEADERBOARD TAB ──────────────────────────────────────────
 
@@ -140,31 +160,45 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getLeaderboard(10);
-        setEntries(data as LeaderboardEntry[]);
-      } catch (e) {
-        console.error('Leaderboard fetch error:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
+  // Re-fetch leaderboard whenever this tab becomes visible
+  const fetchLeaderboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getLeaderboard(10);
+      setEntries(data as LeaderboardEntry[]);
+    } catch (e) {
+      console.error('Leaderboard fetch error:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
 
   const rankEmojis = ['🥇', '🥈', '🥉'];
   const userRank = entries.findIndex(e => e.userId === userId) + 1;
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-xl">🏅</span>
-        <div>
-          <h2 className="text-gray-900 font-black text-lg">Leaderboard</h2>
-          <p className="text-gray-400 text-xs">Top Eco Champions</p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🏅</span>
+          <div>
+            <h2 className="text-gray-900 font-black text-lg">Leaderboard</h2>
+            <p className="text-gray-400 text-xs">Top Eco Champions</p>
+          </div>
         </div>
+        {/* Manual refresh button */}
+        <button
+          onClick={fetchLeaderboard}
+          disabled={loading}
+          className="w-8 h-8 rounded-full bg-green-50 hover:bg-green-100 flex items-center justify-center text-green-600 transition-all disabled:opacity-40"
+          aria-label="Refresh leaderboard"
+        >
+          <svg viewBox="0 0 24 24" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
 
       {userRank > 0 && (
@@ -190,42 +224,25 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
         <div className="space-y-2">
           {entries.map((entry, index) => {
             const isCurrentUser = entry.userId === userId;
-            // Username: prefer @username, fall back to displayName, then "User"
-            const usernameLabel = entry.username
-              ? `@${entry.username}`
-              : entry.displayName || 'User';
-            // Avatar: use stored avatar, fall back to default generated from username seed
+            const usernameLabel = entry.username ? `@${entry.username}` : entry.displayName || 'User';
             const avatarSeed = entry.username || entry.displayName || 'E';
             const avatar = entry.avatarUrl || getDefaultAvatar(avatarSeed);
 
             return (
               <div key={entry.userId} className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${isCurrentUser ? 'bg-purple-50 border-purple-200 shadow-sm' : index < 3 ? 'bg-amber-50 border-amber-100' : 'bg-white border-gray-100'}`}>
-                {/* Rank */}
                 <div className="w-8 text-center shrink-0">
                   {index < 3
                     ? <span className="text-xl">{rankEmojis[index]}</span>
                     : <span className="text-gray-500 font-black text-sm">#{index + 1}</span>
                   }
                 </div>
-
-                {/* Avatar */}
-                <img
-                  src={avatar}
-                  alt={usernameLabel}
-                  className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm"
-                />
-
-                {/* Info — only username, no full name */}
+                <img src={avatar} alt={usernameLabel} className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
                 <div className="flex-1 min-w-0">
                   <p className={`font-bold text-sm truncate ${isCurrentUser ? 'text-purple-700' : 'text-gray-800'}`}>
                     {usernameLabel}{isCurrentUser ? ' (You)' : ''}
                   </p>
-                  <p className="text-gray-400 text-xs">
-                    Level {entry.level}
-                  </p>
+                  <p className="text-gray-400 text-xs">Level {entry.level}</p>
                 </div>
-
-                {/* Points */}
                 <div className="shrink-0 text-right">
                   <p className="font-black text-gray-800 text-sm">{entry.ecoPoints}</p>
                   <p className="text-gray-400 text-xs">pts</p>
@@ -241,15 +258,17 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
-const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage }) => {
+const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, defaultTab }) => {
   const { user, userStats, unlockedBadgeIds } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('missions');
+  const [activeTab, setActiveTab] = useState<Tab>(defaultTab ?? 'missions');
   const [userMissions, setUserMissions] = useState<MissionRecord[]>([]);
 
+  // Re-fetch missions from Firestore whenever userStats changes
+  // (covers both new scans and deletions)
   useEffect(() => {
     if (!user) return;
     getUserMissions(user.uid).then(setUserMissions).catch(console.error);
-  }, [user]);
+  }, [user, userStats]);
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'missions',    label: 'Missions',    emoji: '🏆' },
@@ -278,7 +297,7 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage }) 
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-green-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-              {tab.emoji} {tab.label}
+              <span className="hidden sm:inline">{tab.emoji} </span>{tab.label}
             </button>
           ))}
         </div>
@@ -286,7 +305,7 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage }) 
 
       <div className="flex-1 overflow-y-auto px-5 pb-28">
         {activeTab === 'missions'    && <MissionsTab userMissions={userMissions} userStats={userStats} />}
-        {activeTab === 'badges'      && <BadgesTab unlockedBadgeIds={unlockedBadgeIds} />}
+        {activeTab === 'badges'      && <BadgesTab unlockedBadgeIds={unlockedBadgeIds} userStats={userStats} />}
         {activeTab === 'leaderboard' && user && <LeaderboardTab userId={user.uid} />}
       </div>
 

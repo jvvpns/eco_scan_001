@@ -3,6 +3,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   addDoc,
   query,
@@ -87,6 +88,59 @@ export const getRecentScans = async (userId: string, limitN: number = 5): Promis
   return snap.docs
     .map(d => ({ id: d.id, ...d.data() } as ScanRecord))
     .filter(s => s.userId === userId);
+};
+
+export const deleteScanRecord = async (scanId: string): Promise<void> => {
+  const ref = doc(db, 'scans', scanId);
+  await deleteDoc(ref);
+};
+
+/**
+ * Deducts the points and counters for a deleted scan from UserStats + leaderboard.
+ * isCorrect flag is needed to also roll back correctScans count.
+ */
+export const deductScanPoints = async (
+  userId: string,
+  pointsToDeduct: number,
+  wasCorrect: boolean
+): Promise<void> => {
+  const current = await getUserStats(userId);
+  if (!current) return;
+
+  const newPoints       = Math.max(0, current.ecoPoints - pointsToDeduct);
+  const newTotalScans   = Math.max(0, current.totalScans - 1);
+  const newCorrectScans = Math.max(0, current.correctScans - (wasCorrect ? 1 : 0));
+  const newItemsClassified = Math.max(0, current.itemsClassified - 1);
+  const newLevel        = Math.floor(newPoints / 100) + 1;
+
+  // Recalculate environmental impact
+  const newCo2      = parseFloat((newTotalScans * 0.05).toFixed(2));
+  const newWaste    = parseFloat((newTotalScans * 0.02).toFixed(2));
+  const newTrees    = parseFloat((Math.floor(newPoints / 100) * 1).toFixed(1));
+
+  const updates: Partial<UserStats> = {
+    ecoPoints:       newPoints,
+    level:           newLevel,
+    totalScans:      newTotalScans,
+    correctScans:    newCorrectScans,
+    itemsClassified: newItemsClassified,
+    co2Saved:        newCo2,
+    wasteDiverted:   newWaste,
+    treesSaved:      newTrees,
+  };
+
+  await updateUserStats(userId, updates);
+
+  // Sync leaderboard
+  await updateLeaderboardEntry(userId, {
+    displayName:  current.displayName,
+    username:     current.username  ?? '',
+    avatarUrl:    current.avatarUrl ?? '',
+    ecoPoints:    newPoints,
+    level:        newLevel,
+    correctScans: newCorrectScans,
+    totalScans:   newTotalScans,
+  });
 };
 
 // ─── BADGES ───────────────────────────────────────────────────

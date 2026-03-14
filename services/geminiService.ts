@@ -6,6 +6,7 @@ export interface GarbageIdentificationResult {
   garbageType: GarbageType;
   points: number;
   description?: string;
+  noWasteDetected: boolean;
 }
 
 const pointsMap: Record<GarbageType, number> = {
@@ -15,59 +16,41 @@ const pointsMap: Record<GarbageType, number> = {
   [GarbageType.RESIDUAL]: 5,
 };
 
-const ai = new GoogleGenAI({
-  apiKey: import.meta.env.VITE_GEMINI_API_KEY,
-});
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export const identifyGarbage = async (
   base64Image: string
 ): Promise<GarbageIdentificationResult> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: [
         {
           role: 'user',
           parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
             {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: base64Image,
-              },
-            },
-            {
-              text: `
-Analyze ONLY the main object in the foreground.
-Ignore background clutter, hands, tables, walls, or surroundings.
-Classify the item into ONE of the following categories:
-1. Special
-2. Non-Biodegradable
-3. Biodegradable
-4. Residual
-Respond ONLY in JSON format.
-              `,
+              // Concise prompt — strict waste-only gate, token-efficient
+              text: `Is the main object in this image actual waste/garbage/trash meant for disposal? Examples of waste: bottles, wrappers, cans, food scraps, broken items, packaging. NOT waste: people, animals, furniture, electronics in use, buildings, scenery. Set isWasteItem=false if not waste. Respond JSON only.`,
             },
           ],
         },
       ],
       config: {
-        systemInstruction: `
-You are an expert waste classification AI.
-Return STRICT JSON only.
-No markdown. No explanation outside JSON.
-        `,
+        systemInstruction: `You are a strict waste classification AI. Return JSON only. No markdown.`,
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            itemName: { type: Type.STRING },
+            isWasteItem: { type: Type.BOOLEAN },
+            itemName:    { type: Type.STRING },
             garbageType: {
               type: Type.STRING,
               enum: ['Special', 'Non-Biodegradable', 'Biodegradable', 'Residual'],
             },
             description: { type: Type.STRING },
           },
-          required: ['itemName', 'garbageType'],
+          required: ['isWasteItem', 'itemName', 'garbageType'],
         },
       },
     });
@@ -75,17 +58,28 @@ No markdown. No explanation outside JSON.
     const rawText = response.text ?? '{}';
     const result = JSON.parse(rawText);
 
-    if (!Object.values(GarbageType).includes(result.garbageType)) {
-      throw new Error(`Unknown garbage type returned: '${result.garbageType}'`);
+    // Gate 1: Gemini explicitly says it's not waste
+    if (!result.isWasteItem) {
+      return {
+        itemName: result.itemName || 'Not a waste item',
+        garbageType: GarbageType.RESIDUAL,
+        points: 0,
+        description: result.description,
+        noWasteDetected: true,
+      };
     }
 
-    const points = pointsMap[result.garbageType as GarbageType] || 0;
+    // Gate 2: Validate garbageType enum
+    if (!Object.values(GarbageType).includes(result.garbageType)) {
+      throw new Error(`Unknown garbage type: '${result.garbageType}'`);
+    }
 
     return {
-      itemName: result.itemName,
-      garbageType: result.garbageType,
-      points,
-      description: result.description,
+      itemName:        result.itemName,
+      garbageType:     result.garbageType as GarbageType,
+      points:          pointsMap[result.garbageType as GarbageType] || 0,
+      description:     result.description,
+      noWasteDetected: false,
     };
   } catch (error) {
     console.error('Error identifying garbage:', error);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ScanRecord, Page } from '../types';
 import { useAuth } from '../hooks/useAuth';
-import { getRecentScans } from '../services/firestoreService';
+import { getRecentScans, deleteScanRecord, deductScanPoints } from '../services/firestoreService';
 
 // ─── PROPS ────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   const [recentScans, setRecentScans] = useState<ScanRecord[]>([]);
   const [scansLoading, setScansLoading] = useState(true);
 
-  const { userStats, loading, user } = useAuth();
+  const { userStats, loading, user, refreshStats } = useAuth();
   const dailyTip = getDailyTip();
 
   // ── Fetch recent scans from Firestore ─────────────────────
@@ -156,6 +156,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   useEffect(() => {
     fetchRecentScans();
   }, [fetchRecentScans, refreshTrigger]);
+
+  // ── Delete scan ───────────────────────────────────────────
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteScan = async (scan: ScanRecord) => {
+    if (!user || deletingId) return;
+    setDeletingId(scan.id);
+    // Optimistic removal
+    setRecentScans(prev => prev.filter(s => s.id !== scan.id));
+    try {
+      await deleteScanRecord(scan.id);
+      await deductScanPoints(user.uid, scan.pointsEarned, scan.isCorrect);
+      await refreshStats();
+    } catch (e) {
+      console.error('Delete failed:', e);
+      // Rollback on failure
+      fetchRecentScans();
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const stats = {
     ecoPoints:       userStats?.ecoPoints       ?? 0,
@@ -186,7 +207,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
           <div>
             <h1 className="text-gray-900 font-black text-lg leading-tight tracking-tight">
-              EcoScanner
+              Waste Classifier
             </h1>
             <p className="text-gray-500 text-xs font-medium">
               {user?.displayName
@@ -240,7 +261,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
               <p className="text-gray-400 text-xs">Making a difference, one scan at a time</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <ImpactCard label="Items Classified" value={stats.itemsClassified} unit="items" emoji="🏅" bg="bg-blue-50"    />
             <ImpactCard label="CO₂ Saved"        value={stats.co2Saved}        unit="kg"    emoji="🌱" bg="bg-green-50"   />
             <ImpactCard label="Waste Diverted"   value={stats.wasteDiverted}   unit="kg"    emoji="♻️" bg="bg-purple-50"  />
@@ -266,14 +287,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="space-y-2">
               {recentScans.map(scan => {
                 const categoryColor = CATEGORY_COLORS[scan.aiAnswer] ?? 'bg-gray-100 text-gray-600';
+                const isDeleting = deletingId === scan.id;
                 return (
-                  <div key={scan.id} className="bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-gray-100">
-                    {/* Thumbnail or fallback icon */}
+                  <div key={scan.id} className={`bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-gray-100 transition-opacity ${isDeleting ? 'opacity-40' : 'opacity-100'}`}>
+                    {/* Thumbnail or fallback */}
                     {scan.imageUrl ? (
                       <img src={scan.imageUrl} alt={scan.itemName} className="w-14 h-14 rounded-xl object-cover shrink-0" />
                     ) : (
                       <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center shrink-0 text-2xl">♻️</div>
                     )}
+
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p className="text-gray-900 font-bold text-sm truncate">{scan.itemName || 'Unknown Item'}</p>
                       <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 ${categoryColor}`}>
@@ -281,12 +305,35 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                       </span>
                       <p className="text-gray-300 text-xs mt-0.5">{formatTimestamp(scan.timestamp)}</p>
                     </div>
+
+                    {/* Points */}
                     <div className="text-right shrink-0">
                       <p className={`font-black text-lg ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
                         {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
                       </p>
                       <p className="text-gray-400 text-xs">{scan.isCorrect ? 'pts' : 'missed'}</p>
                     </div>
+
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDeleteScan(scan)}
+                      disabled={!!deletingId}
+                      className="ml-1 w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 active:scale-90 transition-all disabled:opacity-30 shrink-0"
+                      aria-label="Delete scan"
+                    >
+                      {isDeleting ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                          <path d="M10 11v6M14 11v6" />
+                          <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 );
               })}

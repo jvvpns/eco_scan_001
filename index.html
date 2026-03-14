@@ -1,46 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EcoScan: Garbage Identifier</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
-  }
-}
-</script>
-<style>
-  body {
-    /* A dark fallback color in case the image fails to load */
-    background-color: #111;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    /* Enlarge the element to hide the soft, blurred edges */
-    top: -20px;
-    left: -20px;
-    right: -20px;
-    bottom: -20px;
-    background-image: url('https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?q=80&w=2070&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
-    /* Apply blur and a dimming effect to the image itself */
-    filter: blur(12px) brightness(0.6);
-    z-index: -1;
-  }
-</style>
-  <link rel="stylesheet" href="/index.css">
-</head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Primary Meta -->
+    <title>EcoScan - Waste Classifier</title>
+    <meta name="description" content="Learn, Play, and Save the Planet — AI-powered plastic waste classifier with gamification" />
+    <meta name="theme-color" content="#16a34a" />
+
+    <!-- Inline SVG favicon — uses the recycling icon from the icon system -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Crect width='24' height='24' rx='6' fill='%2316a34a'/%3E%3Cpath d='M12 4L8 8.5H10.5V13.5H13.5V8.5H16L12 4Z' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 11L3 15.5H6L7.5 19H10L8.5 15.5H11.5L9.5 11H5Z' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M19 11L21 15.5H18L16.5 19H14L15.5 15.5H12.5L14.5 11H19Z' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <!-- Fallback PNG favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="EcoScan" />
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+
+    <!-- Windows tile -->
+    <meta name="msapplication-TileColor" content="#16a34a" />
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+
+    <!-- Open Graph (for share previews) -->
+    <meta property="og:title" content="EcoScan - Waste Classifier" />
+    <meta property="og:description" content="Learn, Play, and Save the Planet — AI-powered plastic waste classifier" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+    <meta property="og:type" content="website" />
+
+    <!-- Preconnect for Firebase -->
+    <link rel="preconnect" href="https://firebaseapp.com" />
+  </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

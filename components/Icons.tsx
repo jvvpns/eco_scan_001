@@ -1,142 +1,310 @@
-
+/**
+ * EcoScan Icon System
+ * ---------------------------------------------------------------------------
+ * All icons are inline SVG, viewBox="0 0 24 24", stroke-width 2,
+ * stroke-linecap round, stroke-linejoin round.
+ *
+ * Usage:
+ *   import { IconHome, IconScan, IconPlastic } from '@/components/icons';
+ *   <IconHome size={24} color="#1D9E75" />
+ *
+ * Defaults: size=24, color="currentColor"
+ */
 
 import React from 'react';
 
-type IconProps = {
+interface IconProps {
+  size?: number;
+  color?: string;
   className?: string;
-};
+}
 
-// Replaced all icons with simpler, standard versions to fix the persistent SVG parsing error.
-
-export const IconRecycle: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.667 0l3.181-3.183m-4.991 0l-3.182-3.182a8.25 8.25 0 00-11.667 0l3.182 3.182" />
-    </svg>
+const base = (paths: React.ReactNode, size: number, color: string, className?: string) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    {paths}
+  </svg>
 );
 
-export const IconCamera: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.776 48.776 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-    </svg>
-);
+// ─── NAVIGATION ───────────────────────────────────────────────
 
-export const IconTrash: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-    </svg>
-);
+export const IconHome: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V10.5Z" />
+      <path d="M9 21V16C9 15.45 9.45 15 10 15H14C14.55 15 15 15.45 15 16V21" />
+    </>,
+    size, color, className
+  );
 
-export const IconLeaf: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21V3" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-4.688 0-8.716 3.747-8.716 8.25S7.312 19.5 12 19.5s8.716-3.747 8.716-8.25S16.688 3 12 3z" />
-    </svg>
-);
+export const IconMissions: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M17.5 6.5L15.5 8.5" />
+    </>,
+    size, color, className
+  );
 
-export const IconArrowLeft: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-    </svg>
-);
+export const IconScanNav: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M9 9H15M9 12H12" />
+      <circle cx="17" cy="15" r="3" fill={color} stroke={color} />
+      <path d="M15.8 15L16.6 15.8L18.2 14.2" stroke="white" strokeWidth="1.5" />
+    </>,
+    size, color, className
+  );
 
-export const IconUpload: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-    </svg>
-);
+export const IconLeaderboard: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M8 18V13H5L12 4L19 13H16V18" />
+      <path d="M9 21H15" />
+      <path d="M8 18H16" />
+    </>,
+    size, color, className
+  );
 
-export const IconMenu: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-    </svg>
-);
+export const IconProfile: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20C4 17.2 7.6 15 12 15C16.4 15 20 17.2 20 20" />
+    </>,
+    size, color, className
+  );
 
-export const IconUserCircle: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-);
+// ─── WASTE CATEGORIES ─────────────────────────────────────────
 
-export const IconSettings: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-.995s-.145-.755-.437-.995l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.075-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-);
+export const IconPlastic: React.FC<IconProps> = ({ size = 24, color = '#378ADD', className }) =>
+  base(
+    <>
+      <path d="M8 4H7C5.9 4 5 4.9 5 6V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V6C19 4.9 18.1 4 17 4H16" stroke={color} />
+      <rect x="9" y="3" width="6" height="3" rx="1.5" stroke={color} />
+      <path d="M9 12C9 10.9 9.9 10 11 10H13C14.1 10 15 10.9 15 12V15C15 16.1 14.1 17 13 17H11C9.9 17 9 16.1 9 15V12Z" stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconDashboard: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-    </svg>
-);
+export const IconPaper: React.FC<IconProps> = ({ size = 24, color = '#63A9D9', className }) =>
+  base(
+    <>
+      <path d="M4 4H20V16C20 17.1 19.1 18 18 18H6C4.9 18 4 17.1 4 16V4Z" stroke={color} />
+      <path d="M4 8H20" stroke={color} />
+      <path d="M9 21L7.5 18" stroke={color} />
+      <path d="M15 21L16.5 18" stroke={color} />
+      <path d="M8 12H16" stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconBottle: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 21h8v-9.5a4.5 4.5 0 00-4-4.472V3H7v4.028a4.5 4.5 0 00-3 4.472V21" transform="translate(2 0)" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6" />
-    </svg>
-);
+export const IconMetal: React.FC<IconProps> = ({ size = 24, color = '#888780', className }) =>
+  base(
+    <>
+      <path d="M7 4H17L19 8H5L7 4Z" stroke={color} />
+      <rect x="6" y="8" width="12" height="12" rx="2" stroke={color} />
+      <path d="M9 12H15M9 15H12" stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconPaper: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-);
+export const IconGlass: React.FC<IconProps> = ({ size = 24, color = '#5DCAA5', className }) =>
+  base(
+    <>
+      <path d="M9 3H15V6C15 6 17 7 17 10V19C17 20.1 16.1 21 15 21H9C7.9 21 7 20.1 7 19V10C7 7 9 6 9 6V3Z" stroke={color} />
+      <path d="M9 8H15" stroke={color} />
+      <path d="M10 13C10 12.45 10.45 12 11 12H13C13.55 12 14 12.45 14 13V17C14 17.55 13.55 18 13 18H11C10.45 18 10 17.55 10 17V13Z" stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconMetal: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9.75v4.5a3 3 0 01-3 3h-12a3 3 0 01-3-3v-4.5m18 0V7.5a3 3 0 00-3-3h-12a3 3 0 00-3 3v2.25m18 0h-2.25m-13.5 0H3.75" />
-    </svg>
-);
+export const IconOrganic: React.FC<IconProps> = ({ size = 24, color = '#639922', className }) =>
+  base(
+    <>
+      <path d="M12 3C12 3 7 7 7 13C7 16.3 9.2 19 12 19C14.8 19 17 16.3 17 13C17 7 12 3 12 3Z" stroke={color} />
+      <path d="M12 19V22" stroke={color} />
+      <path d="M9 21H15" stroke={color} />
+      <path d="M12 10C12 10 9.5 12 9.5 14" stroke={color} strokeWidth="1.5" />
+    </>,
+    size, color, className
+  );
 
-export const IconStyrofoam: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9.75l-9-5.25m9 5.25v9.75" />
-    </svg>
-);
+export const IconSpecialWaste: React.FC<IconProps> = ({ size = 24, color = '#E24B4A', className }) =>
+  base(
+    <>
+      <path d="M12 3L22 8.5V15.5L12 21L2 15.5V8.5L12 3Z" stroke={color} />
+      <path d="M12 8V12" stroke={color} />
+      <circle cx="12" cy="15" r="1" fill={color} stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconPencil: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-    </svg>
-);
+// ─── ACTIONS ──────────────────────────────────────────────────
 
-export const IconKey: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-    </svg>
-);
+export const IconScan: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <path d="M14 17.5H21M17.5 14V21" />
+    </>,
+    size, color, className
+  );
 
-export const IconChevronRight: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-    </svg>
-);
+export const IconDeleteScan: React.FC<IconProps> = ({ size = 24, color = '#E24B4A', className }) =>
+  base(
+    <>
+      <path d="M3 6H21" stroke={color} />
+      <path d="M8 6V4H16V6" stroke={color} />
+      <path d="M19 6L18 20H6L5 6" stroke={color} />
+      <path d="M10 11V16M14 11V16" stroke={color} />
+    </>,
+    size, color, className
+  );
 
-export const IconLogout: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3 0l3-3m0 0l-3-3m3 3H9" />
-    </svg>
-);
+export const IconEditProfile: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20C4 17.2 7.6 15 12 15" />
+      <path d="M15 19L16.5 20.5L19.5 17.5" />
+    </>,
+    size, color, className
+  );
 
-// FIX: Add missing IconLockClosed icon
-export const IconLockClosed: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-    </svg>
-);
+export const IconUploadAvatar: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="12" cy="9" r="5" />
+      <path d="M3 21C3 17.7 7 15 12 15C17 15 21 17.7 21 21" />
+      <path d="M16 3L18 5L21 2" />
+    </>,
+    size, color, className
+  );
 
-// FIX: Add IconShieldCheck for tiers
-export const IconShieldCheck: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286z" />
-    </svg>
-);
+export const IconRecycling: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M12 3L8.5 8H11V13H13V8H15.5L12 3Z" />
+      <path d="M5.5 10.5L3.5 15H6.5L8 19H11L9 15H12L9.5 10.5H5.5Z" />
+      <path d="M18.5 10.5L20.5 15H17.5L16 19H13L15 15H12L14.5 10.5H18.5Z" />
+    </>,
+    size, color, className
+  );
 
-// FIX: Add IconStar for tiers
-export const IconStar: React.FC<IconProps> = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.31h5.418a.562.562 0 01.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 21.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988h5.418a.563.563 0 00.475-.31L11.48 3.5z" />
-    </svg>
-);
+export const IconPoints: React.FC<IconProps> = ({ size = 24, color = '#EF9F27', className }) =>
+  base(
+    <>
+      <path d="M8.5 14.5L4 19" stroke={color} />
+      <circle cx="13" cy="9" r="5" stroke={color} />
+      <path d="M13 7V9L14.5 10.5" stroke={color} />
+      <circle cx="19.5" cy="19.5" r="2.5" fill={color} stroke={color} />
+      <path d="M18.5 19.5H20.5M19.5 18.5V20.5" stroke="white" strokeWidth="1.5" />
+    </>,
+    size, color, className
+  );
+
+export const IconBadge: React.FC<IconProps> = ({ size = 24, color = '#EF9F27', className }) =>
+  base(
+    <path d="M12 3L14.5 8.5L21 9.3L16.5 13.6L17.6 20L12 17L6.4 20L7.5 13.6L3 9.3L9.5 8.5L12 3Z" stroke={color} />,
+    size, color, className
+  );
+
+export const IconStreak: React.FC<IconProps> = ({ size = 24, color = '#EF9F27', className }) =>
+  base(
+    <path d="M13 3L8.5 12H12L11 21L15.5 12H12L13 3Z" stroke={color} />,
+    size, color, className
+  );
+
+export const IconEcoPoints: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M5 3C5 3 4 8 6 11C8 14 12 14 12 14C12 14 16 14 18 11C20 8 19 3 19 3" />
+      <path d="M5 3H19" />
+      <path d="M12 14V21" />
+      <path d="M8 21H16" />
+    </>,
+    size, color, className
+  );
+
+// ─── UTILITY ──────────────────────────────────────────────────
+
+export const IconNotifications: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M18 8A6 6 0 0 0 6 8C6 14 3 16 3 16H21C21 16 18 14 18 8Z" />
+      <path d="M13.73 21C13.55 21.3 13.3 21.55 13 21.73C12.7 21.9 12.36 22 12 22C11.64 22 11.3 21.9 11 21.73C10.7 21.55 10.45 21.3 10.27 21" />
+    </>,
+    size, color, className
+  );
+
+export const IconSearch: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21L16.7 16.7" />
+    </>,
+    size, color, className
+  );
+
+export const IconInfo: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8V12" />
+      <circle cx="12" cy="15.5" r="0.75" fill={color} stroke={color} strokeWidth="0.5" />
+    </>,
+    size, color, className
+  );
+
+export const IconBack: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <path d="M19 12H5M5 12L12 19M5 12L12 5" />,
+    size, color, className
+  );
+
+export const IconClose: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <path d="M6 6L18 18M18 6L6 18" />,
+    size, color, className
+  );
+
+export const IconInstall: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M12 3V15M12 15L8 11M12 15L16 11" />
+      <path d="M4 17V19C4 20.1 4.9 21 6 21H18C19.1 21 20 20.1 20 19V17" />
+    </>,
+    size, color, className
+  );
+
+export const IconMenu: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <path d="M4 6H20M4 12H20M4 18H12" />,
+    size, color, className
+  );
+
+// ─── APP BRAND ICON (for splash / install banner) ─────────────
+export const EcoScanBrandIcon: React.FC<IconProps> = ({ size = 32, color = 'white', className }) =>
+  base(
+    <>
+      <path d="M12 3L8.5 8H11V13H13V8H15.5L12 3Z" stroke={color} />
+      <path d="M5.5 10.5L3.5 15H6.5L8 19H11L9 15H12L9.5 10.5H5.5Z" stroke={color} />
+      <path d="M18.5 10.5L20.5 15H17.5L16 19H13L15 15H12L14.5 10.5H18.5Z" stroke={color} />
+    </>,
+    size, color, className
+  );
