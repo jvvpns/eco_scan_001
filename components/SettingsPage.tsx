@@ -47,6 +47,7 @@ const ChevronRightIcon = () => (
 
 interface SettingsPageProps {
   onLogout: () => void;
+  onBack?: () => void;
 }
 
 // ─── SETTINGS ITEM ────────────────────────────────────────────
@@ -60,12 +61,12 @@ const SettingsItem: React.FC<{
   <button
     onClick={onClick}
     className={`w-full flex items-center justify-between p-4 rounded-lg transition-colors ${
-      isDestructive ? 'hover:bg-red-500/20' : 'hover:bg-white/10'
+      isDestructive ? 'hover:bg-red-500/20' : 'hover:bg-green-50/50'
     }`}
   >
     <div className="flex items-center">
-      <div className={isDestructive ? 'text-red-400' : 'text-gray-200'}>{icon}</div>
-      <span className={`ml-4 font-medium ${isDestructive ? 'text-red-400' : 'text-gray-100'}`}>
+      <div className={isDestructive ? 'text-red-400' : 'text-green-600'}>{icon}</div>
+      <span className={`ml-4 font-medium ${isDestructive ? 'text-red-500' : 'text-gray-800'}`}>
         {label}
       </span>
     </div>
@@ -75,13 +76,26 @@ const SettingsItem: React.FC<{
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
-const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
+const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onBack }) => {
   return (
-    <div className="p-4">
+    <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
+      
+      {/* ── HEADER ─────────────────────────────────────────── */}
+      <div className="px-5 pt-6 pb-3 flex items-center gap-3">
+        <button 
+          onClick={onBack}
+          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
+        >
+          <IconBack size={20} color="currentColor" />
+        </button>
+        <h1 className="text-gray-900 font-black text-xl tracking-tight">Settings</h1>
+      </div>
+
+      <div className="p-4 flex-1">
       <div className="w-full max-w-md mx-auto space-y-6">
 
         {/* Account */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 p-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
           <h2 className="text-xs font-bold uppercase text-gray-400 px-4 pt-2">Account</h2>
           <div className="mt-2 space-y-1">
             <SettingsItem icon={<IconEditProfile size={24} color="currentColor" />} label="Edit Profile" />
@@ -90,7 +104,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-red-900/20 backdrop-blur-lg rounded-xl border border-red-500/30 p-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-2">
           <h2 className="text-xs font-bold uppercase text-red-400 px-4 pt-2">Danger Zone</h2>
           <div className="mt-2 space-y-1">
             <SettingsItem icon={<TrashIcon />} label="Delete Account" isDestructive />
@@ -98,10 +112,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
         </div>
 
         {/* Logout */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 p-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
           <SettingsItem icon={<LogoutIcon />} label="Log Out" onClick={onLogout} />
         </div>
 
+      </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ export enum Page {
   SCAN = 'SCAN',
   PROFILE = 'PROFILE',
   SETTINGS = 'SETTINGS',
+  APP_SETTINGS = 'APP_SETTINGS',
   TIER = 'TIER',
 }
 

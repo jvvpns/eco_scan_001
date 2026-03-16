@@ -2,6 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ScanRecord, Page } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { getRecentScans, deleteScanRecord, deductScanPoints } from '../services/firestoreService';
+import { useToast, ToastContainer } from './Toast';
+import {
+  IconHome, IconMissions, IconLeaderboard, IconProfile,
+  IconScanNav, IconNotifications, IconRecycling, IconOrganic,
+  IconEcoPoints, IconStreak, IconScan, IconDeleteScan,
+  EcoScanBrandIcon,
+} from './Icons';
 
 // ─── PROPS ────────────────────────────────────────────────────
 
@@ -22,8 +29,6 @@ const MOCK_ECO_TIPS = [
   "One ton of recycled paper saves 17 trees and 7,000 gallons of water.",
 ];
 
-const getDailyTip = () => MOCK_ECO_TIPS[new Date().getDay() % MOCK_ECO_TIPS.length];
-
 // ─── CATEGORY COLOR MAP ───────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -33,39 +38,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Biodegradable':     'bg-green-100 text-green-600',
 };
 
-// ─── ICONS ────────────────────────────────────────────────────
-
-const HomeIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill={active ? '#16a34a' : 'none'} stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-);
-const MissionsIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-  </svg>
-);
-const LeaderboardIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
-const ProfileIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-const ScanCameraIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="white" strokeWidth={2.2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-const BellIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-  </svg>
-);
 
 // ─── SUB COMPONENTS ───────────────────────────────────────────
 
@@ -132,21 +104,36 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   refreshTrigger = 0,
 }) => {
   const [tipDismissed, setTipDismissed] = useState(false);
+  const [tipIndex, setTipIndex] = useState(() => new Date().getDay() % MOCK_ECO_TIPS.length);
   const [recentScans, setRecentScans] = useState<ScanRecord[]>([]);
   const [scansLoading, setScansLoading] = useState(true);
+  const [scansError, setScansError] = useState(false);
 
   const { userStats, loading, user, refreshStats } = useAuth();
-  const dailyTip = getDailyTip();
+  const { toasts, showToast, dismissToast } = useToast();
+  
+  // Rotate eco tip every 10 seconds
+  useEffect(() => {
+    if (tipDismissed) return;
+    const interval = setInterval(() => {
+      setTipIndex(prev => (prev + 1) % MOCK_ECO_TIPS.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [tipDismissed]);
+
+  const dailyTip = MOCK_ECO_TIPS[tipIndex];
 
   // ── Fetch recent scans from Firestore ─────────────────────
   const fetchRecentScans = useCallback(async () => {
     if (!user) return;
     setScansLoading(true);
+    setScansError(false);
     try {
       const scans = await getRecentScans(user.uid, 5);
       setRecentScans(scans);
     } catch (e) {
       console.error('Failed to fetch recent scans:', e);
+      setScansError(true);
     } finally {
       setScansLoading(false);
     }
@@ -169,8 +156,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
       await deleteScanRecord(scan.id);
       await deductScanPoints(user.uid, scan.pointsEarned, scan.isCorrect);
       await refreshStats();
+      showToast('Scan deleted.', 'success');
     } catch (e) {
       console.error('Delete failed:', e);
+      showToast('Failed to delete scan. Please try again.', 'error');
       // Rollback on failure
       fetchRecentScans();
     } finally {
@@ -189,15 +178,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const navItems = [
-    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <HomeIcon active={a} /> },
-    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <MissionsIcon active={a} /> },
+    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <IconHome        size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <IconMissions    size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
     { page: null,           label: 'Scan',     icon: () => null },
-    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <LeaderboardIcon active={a} /> },
-    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <ProfileIcon active={a} /> },
+    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <IconLeaderboard size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <IconProfile     size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── HEADER ─────────────────────────────────────────── */}
       <div className="px-5 pt-6 pb-3 bg-[#f0fdf4] flex items-center justify-between">
@@ -207,7 +197,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
           <div>
             <h1 className="text-gray-900 font-black text-lg leading-tight tracking-tight">
-              Waste Classifier
+              EcoScanner
             </h1>
             <p className="text-gray-500 text-xs font-medium">
               {user?.displayName
@@ -216,9 +206,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </p>
           </div>
         </div>
-        <button className="relative w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-500 hover:bg-gray-50 transition">
-          <BellIcon />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+        <button className="relative w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 hover:bg-green-50 hover:text-green-600 active:scale-95 transition-all">
+          <IconNotifications size={20} color="currentColor" />
         </button>
       </div>
 
@@ -282,6 +271,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="space-y-2">
               <ScanSkeleton />
               <ScanSkeleton />
+            </div>
+          ) : scansError ? (
+            <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-sm border border-red-100">
+              <span className="text-3xl">⚠️</span>
+              <p className="text-gray-700 font-bold text-sm">Failed to load scans</p>
+              <p className="text-gray-400 text-xs text-center">Check your connection and try again.</p>
+              <button
+                onClick={fetchRecentScans}
+                className="mt-1 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-5 py-2 rounded-xl active:scale-95 transition-all"
+              >
+                Retry
+              </button>
             </div>
           ) : recentScans.length > 0 ? (
             <div className="space-y-2">
@@ -361,7 +362,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                   <button onClick={onScanClick}
                     className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 flex items-center justify-center shadow-lg shadow-green-200 transition-all"
                     aria-label="Scan waste">
-                    <ScanCameraIcon />
+                    <IconScanNav size={28} color="white" />
                   </button>
                   <span className="text-green-600 text-xs font-bold mt-1.5">Scan</span>
                 </div>

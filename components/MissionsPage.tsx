@@ -4,6 +4,11 @@ import { useAuth } from '../hooks/useAuth';
 import { BADGES, MISSIONS } from '../services/gamificationService';
 import { getLeaderboard, getUserMissions } from '../services/firestoreService';
 import { getDefaultAvatar } from './LoginPage';
+import { useToast, ToastContainer } from './Toast';
+import {
+  IconHome, IconMissions, IconLeaderboard, IconProfile, IconScanNav,
+  IconEcoPoints, IconBadge, IconRecycling, IconStreak,
+} from './Icons';
 
 // ─── TYPES ────────────────────────────────────────────────────
 
@@ -31,35 +36,6 @@ interface MissionsPageProps {
 }
 
 type Tab = 'missions' | 'badges' | 'leaderboard';
-
-// ─── BOTTOM NAV ICONS ─────────────────────────────────────────
-
-const HomeIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill={active ? '#16a34a' : 'none'} stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-);
-const MissionsNavIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-  </svg>
-);
-const LeaderboardNavIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
-const ProfileNavIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-const ScanCameraIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="white" strokeWidth={2.2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
 
 // ─── MISSIONS TAB ─────────────────────────────────────────────
 
@@ -159,15 +135,18 @@ const BadgesTab: React.FC<{ unlockedBadgeIds: string[]; userStats: any }> = ({ u
 const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   // Re-fetch leaderboard whenever this tab becomes visible
   const fetchLeaderboard = useCallback(async () => {
     setLoading(true);
+    setFetchError(false);
     try {
       const data = await getLeaderboard(10);
       setEntries(data as LeaderboardEntry[]);
     } catch (e) {
       console.error('Leaderboard fetch error:', e);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -215,6 +194,18 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />)}
         </div>
+      ) : fetchError ? (
+        <div className="flex flex-col items-center gap-3 py-10">
+          <span className="text-3xl">⚠️</span>
+          <p className="text-gray-600 font-bold text-sm">Failed to load leaderboard</p>
+          <p className="text-gray-400 text-xs text-center">Check your connection and try again.</p>
+          <button
+            onClick={fetchLeaderboard}
+            className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-5 py-2 rounded-xl active:scale-95 transition-all"
+          >
+            Retry
+          </button>
+        </div>
       ) : entries.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12">
           <span className="text-4xl">🌿</span>
@@ -260,14 +251,25 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
 
 const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, defaultTab }) => {
   const { user, userStats, unlockedBadgeIds } = useAuth();
+  const { toasts, showToast, dismissToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab ?? 'missions');
   const [userMissions, setUserMissions] = useState<MissionRecord[]>([]);
+
+  // Because this component is persistent in DOM during transitions (re-used for two routes),
+  // we must update "activeTab" if the parent explicitly passes a new "defaultTab".
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   // Re-fetch missions from Firestore whenever userStats changes
   // (covers both new scans and deletions)
   useEffect(() => {
     if (!user) return;
-    getUserMissions(user.uid).then(setUserMissions).catch(console.error);
+    getUserMissions(user.uid)
+      .then(setUserMissions)
+      .catch(() => showToast('Failed to load missions. Please try again.', 'error'));
   }, [user, userStats]);
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
@@ -277,16 +279,16 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, de
   ];
 
   const navItems = [
-    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <HomeIcon active={a} /> },
-    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <MissionsNavIcon active={a} /> },
+    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <IconHome        size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <IconMissions    size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
     { page: null,           label: 'Scan',     icon: () => null },
-    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <LeaderboardNavIcon active={a} /> },
-    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <ProfileNavIcon active={a} /> },
+    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <IconLeaderboard size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <IconProfile     size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
-
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <div className="px-5 pt-6 pb-3 bg-[#f0fdf4]">
         <h1 className="text-gray-900 font-black text-xl tracking-tight">EcoMissions</h1>
         <p className="text-gray-500 text-xs font-medium mt-0.5">Complete challenges to earn EcoPoints</p>
@@ -317,7 +319,7 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, de
                 <div key="scan" className="flex flex-col items-center -mt-6">
                   <button onClick={() => onNavigate(Page.SCAN)}
                     className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 flex items-center justify-center shadow-lg shadow-green-200 transition-all">
-                    <ScanCameraIcon />
+                    <IconScanNav size={28} color="white" />
                   </button>
                   <span className="text-green-600 text-xs font-bold mt-1.5">Scan</span>
                 </div>

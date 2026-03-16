@@ -5,45 +5,23 @@ import { BADGES } from '../services/gamificationService';
 import { logoutUser, updateDisplayName } from '../services/authService';
 import { updateUserStats, updateLeaderboardEntry } from '../services/firestoreService';
 import { getDefaultAvatar } from './LoginPage';
+import { useToast, ToastContainer } from './Toast';
 
 interface ProfilePageProps {
   onNavigate: (page: Page) => void;
   currentPage: Page;
 }
 
-// ─── BOTTOM NAV ICONS ─────────────────────────────────────────
+import {
+  IconHome, IconMissions, IconLeaderboard, IconProfile, IconScanNav,
+  IconEcoPoints, IconStreak, IconBadge, IconRecycling, IconOrganic,
+  IconUploadAvatar, IconEditProfile, IconClose, IconScan, IconSettings,
+} from './Icons';
 
-const HomeIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill={active ? '#16a34a' : 'none'} stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  </svg>
-);
-const MissionsIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-  </svg>
-);
-const LeaderboardIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
-const ProfileNavIcon = ({ active }: { active: boolean }) => (
-  <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke={active ? '#16a34a' : '#9ca3af'} strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-const ScanCameraIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-7 h-7" fill="none" stroke="white" strokeWidth={2.2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const StatRow: React.FC<{ label: string; value: string | number; emoji: string }> = ({ label, value, emoji }) => (
+const StatRow: React.FC<{ label: string; value: string | number; icon: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
     <div className="flex items-center gap-2">
-      <span className="text-base">{emoji}</span>
+      <span className="w-5 h-5 flex items-center justify-center">{icon}</span>
       <span className="text-gray-600 text-sm font-medium">{label}</span>
     </div>
     <span className="text-gray-900 font-bold text-sm">{value}</span>
@@ -53,7 +31,8 @@ const StatRow: React.FC<{ label: string; value: string | number; emoji: string }
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) => {
-  const { user, userStats, unlockedBadgeIds, refreshStats } = useAuth();
+  const { user, userStats, unlockedBadgeIds, refreshStats, loading } = useAuth();
+  const { toasts, showToast, dismissToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loggingOut, setLoggingOut] = useState(false);
@@ -120,7 +99,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
       await refreshStats();
       setShowEditModal(false);
     } catch (e) {
-      setEditError('Failed to save. Please try again.');
+      showToast('Failed to save profile. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -133,24 +112,63 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
   };
 
   const navItems = [
-    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <HomeIcon active={a} /> },
-    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <MissionsIcon active={a} /> },
+    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <IconHome        size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <IconMissions    size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
     { page: null,           label: 'Scan',     icon: () => null },
-    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <LeaderboardIcon active={a} /> },
-    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <ProfileNavIcon active={a} /> },
+    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <IconLeaderboard size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
+    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <IconProfile     size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
   ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-3">
-        <h1 className="text-gray-900 font-black text-xl tracking-tight">Profile</h1>
-        <p className="text-gray-500 text-xs font-medium mt-0.5">Your EcoScan journey</p>
+      <div className="px-5 pt-6 pb-3 flex items-center justify-between">
+        <div>
+          <h1 className="text-gray-900 font-black text-xl tracking-tight">Profile</h1>
+          <p className="text-gray-500 text-xs font-medium mt-0.5">Your EcoScan journey</p>
+        </div>
+        <button
+          onClick={() => onNavigate(Page.APP_SETTINGS)}
+          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 active:scale-95 transition-all"
+        >
+          <IconSettings size={22} color="currentColor" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-28 space-y-4">
 
+        {/* ── SKELETON WHILE LOADING ─────────────────────────── */}
+        {loading ? (
+          <>
+            {/* Profile card skeleton */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-[72px] h-[72px] rounded-full bg-gray-200 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </div>
+              </div>
+              <div className="mt-4 h-10 bg-gray-100 rounded-xl" />
+            </div>
+            {/* EcoPoints banner skeleton */}
+            <div className="bg-gray-200 rounded-2xl h-24 animate-pulse" />
+            {/* Stats skeleton */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse space-y-3">
+              <div className="h-3 bg-gray-200 rounded w-1/3" />
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex justify-between py-2 border-b border-gray-50">
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/6" />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
         {/* ── PROFILE CARD ───────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-4">
@@ -173,11 +191,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
               </p>
               <p className="text-gray-400 text-xs truncate">{user?.email}</p>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                  Level {userStats?.level ?? 1}
+                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <IconEcoPoints size={10} color="#15803d" /> Level {userStats?.level ?? 1}
                 </span>
-                <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {userStats?.streak ?? 0} 🔥
+                <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <IconStreak size={10} color="#ea580c" /> {userStats?.streak ?? 0}
                 </span>
               </div>
             </div>
@@ -186,9 +204,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
           {/* Edit Profile Button */}
           <button
             onClick={openEditModal}
-            className="mt-4 w-full bg-green-50 border border-green-200 text-green-700 font-bold text-sm rounded-xl py-2.5 active:scale-95 transition hover:bg-green-100"
+            className="mt-4 w-full bg-green-50 border border-green-200 text-green-700 font-bold text-sm rounded-xl py-2.5 active:scale-95 transition hover:bg-green-100 flex items-center justify-center gap-2"
           >
-            ✏️ Edit Profile
+            <IconEditProfile size={16} color="#15803d" /> Edit Profile
           </button>
         </div>
 
@@ -201,25 +219,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
               {100 - ((userStats?.ecoPoints ?? 0) % 100)} pts to Level {(userStats?.level ?? 1) + 1}
             </p>
           </div>
-          <span className="text-5xl">🌿</span>
+          <IconOrganic size={52} color="rgba(255,255,255,0.8)" />
         </div>
 
         {/* ── SCAN STATS ─────────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <p className="text-gray-900 font-bold text-sm mb-1">Scan Statistics</p>
-          <StatRow label="Total Scans"     value={userStats?.totalScans ?? 0}                    emoji="📊" />
-          <StatRow label="Correct Answers" value={userStats?.correctScans ?? 0}                  emoji="✅" />
-          <StatRow label="Accuracy"        value={`${accuracy}%`}                               emoji="🎯" />
-          <StatRow label="Badges Earned"   value={`${unlockedBadgeIds.length} / ${BADGES.length}`} emoji="🎖️" />
+          <StatRow label="Total Scans"     value={userStats?.totalScans ?? 0}                       icon={<IconScan      size={16} color="#3b82f6" />} />
+          <StatRow label="Correct Answers" value={userStats?.correctScans ?? 0}                     icon={<IconRecycling size={16} color="#16a34a" />} />
+          <StatRow label="Accuracy"        value={`${accuracy}%`}                                  icon={<IconEcoPoints size={16} color="#6366f1" />} />
+          <StatRow label="Badges Earned"   value={`${unlockedBadgeIds.length} / ${BADGES.length}`} icon={<IconBadge     size={16} color="#d97706" />} />
         </div>
 
         {/* ── ENVIRONMENTAL IMPACT ───────────────────────────── */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-green-100">
           <p className="text-gray-900 font-bold text-sm mb-1">Environmental Impact</p>
-          <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} emoji="🏅" />
-          <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}           emoji="🌱" />
-          <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}       emoji="♻️" />
-          <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}             emoji="🌳" />
+          <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} icon={<IconScan     size={16} color="#3b82f6" />} />
+          <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}          icon={<IconOrganic  size={16} color="#16a34a" />} />
+          <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}      icon={<IconRecycling size={16} color="#06b6d4" />} />
+          <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}            icon={<IconOrganic  size={16} color="#15803d" />} />
         </div>
 
         {/* ── BADGES ─────────────────────────────────────────── */}
@@ -243,9 +261,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
           disabled={loggingOut}
           className="w-full bg-white border border-red-200 text-red-500 font-bold rounded-2xl py-4 text-sm hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
         >
-          {loggingOut ? 'Signing out...' : '🚪 Sign Out'}
+          {loggingOut ? 'Signing out...' : 'Sign Out'}
         </button>
 
+          </> )} {/* end loading ternary */}
       </div>
 
       {/* ── EDIT PROFILE MODAL ─────────────────────────────── */}
@@ -254,7 +273,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
           <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-gray-900 font-black text-lg">Edit Profile</h3>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 text-2xl leading-none">×</button>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 p-1 hover:text-gray-600 transition">
+                <IconClose size={22} color="currentColor" />
+              </button>
             </div>
 
             {/* Avatar picker */}
@@ -267,12 +288,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm shadow"
+                  className="absolute bottom-0 right-0 bg-green-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow"
                 >
-                  📷
+                  <IconUploadAvatar size={14} color="white" />
                 </button>
               </div>
-              <p className="text-gray-400 text-xs">Tap camera to change avatar (max 500KB)</p>
+              <p className="text-gray-400 text-xs flex items-center gap-1">
+                <IconUploadAvatar size={12} color="#9ca3af" />
+                Tap camera to change avatar (max 500KB)
+              </p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -333,7 +357,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
                     onClick={() => onNavigate(Page.SCAN)}
                     className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 flex items-center justify-center shadow-lg shadow-green-200 transition-all"
                   >
-                    <ScanCameraIcon />
+                    <IconScanNav size={28} color="white" />
                   </button>
                   <span className="text-green-600 text-xs font-bold mt-1.5">Scan</span>
                 </div>

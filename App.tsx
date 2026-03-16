@@ -5,9 +5,11 @@ import DashboardPage from './components/DashboardPage';
 import ScanPage from './components/ScanPage';
 import MissionsPage from './components/MissionsPage';
 import ProfilePage from './components/ProfilePage';
+import SettingsPage from './components/SettingsPage';
 import { Page } from './types';
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
+import { logoutUser } from './services/authService';
 
 // ─── PAGE TRANSITION DURATION (ms) ───────────────────────────
 const TRANSITION_MS = 220;
@@ -64,6 +66,16 @@ function buildPage(
         <ProfilePage
           onNavigate={navigateTo}
           currentPage={currentPage}
+        />
+      );
+
+    case Page.APP_SETTINGS:
+      return (
+        <SettingsPage 
+          onLogout={async () => {
+            await logoutUser();
+          }}
+          onBack={() => navigateTo(Page.SETTINGS)}
         />
       );
 

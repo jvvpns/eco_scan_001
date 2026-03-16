@@ -4,6 +4,7 @@ import { processScanResult, BADGES } from '../services/gamificationService';
 import { saveScanRecord } from '../services/firestoreService';
 import { IconBack, IconUploadAvatar } from './Icons';
 import { useAuth } from '../hooks/useAuth';
+import { useToast, ToastContainer } from './Toast';
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 
@@ -92,6 +93,9 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   const [showBadgeAnim, setShowBadgeAnim] = useState<string | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_SECONDS);
   const [cooldownLeft, setCooldownLeft]   = useState(0);
+  const [cameraBlocked, setCameraBlocked] = useState(false);
+
+  const { toasts, showToast, dismissToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef     = useRef<HTMLVideoElement>(null);
@@ -134,6 +138,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           if (videoRef.current) { videoRef.current.srcObject = stream; setIsCameraReady(true); }
         } catch {
           setError('Could not access camera. Please ensure permissions are granted.');
+          setCameraBlocked(true);
         }
       } finally {
         setIsCameraInitializing(false);
@@ -241,7 +246,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       setScanResult({ isCorrect, userAnswer: categoryId, aiAnswer, itemName: result.itemName, pointsEarned, newlyUnlockedBadges });
       setStep('result');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      showToast(err instanceof Error ? err.message : 'AI scan failed. Please try again.', 'error');
       setStep('classify');
     } finally {
       setIsLoading(false);
@@ -260,11 +265,53 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   // ─── RENDER: CAMERA ───────────────────────────────────────
 
   if (step === 'camera') {
+    // ── Full-screen fallback: camera permanently blocked ──
+    if (cameraBlocked) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-8 gap-5">
+          <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+          <div className="w-20 h-20 rounded-full bg-red-900/40 flex items-center justify-center">
+            <span className="text-4xl">📷</span>
+          </div>
+          <div className="text-center">
+            <p className="text-white font-black text-xl">Camera Access Denied</p>
+            <p className="text-gray-400 text-sm mt-2 leading-relaxed max-w-xs mx-auto">
+              EcoScan needs camera access to classify waste items. Please enable it in your device settings and try again.
+            </p>
+          </div>
+          <div className="bg-gray-800 rounded-2xl p-4 w-full max-w-sm">
+            <p className="text-gray-300 font-bold text-xs mb-2">How to fix:</p>
+            <ul className="text-gray-400 text-xs space-y-1">
+              <li>• iOS: Settings → Safari → Camera → Allow</li>
+              <li>• Android: Settings → Apps → Browser → Permissions</li>
+              <li>• Chrome: Click 🔒 in address bar → Camera → Allow</li>
+            </ul>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-sm">
+            <button
+              onClick={() => { setCameraBlocked(false); setError(null); }}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-2xl active:scale-95 transition-all"
+            >
+              Upload from Gallery Instead
+            </button>
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col h-full bg-black min-h-screen">
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         <div className="absolute top-4 left-4 z-20">
           <button onClick={onBack} className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition">
-            <IconBack className="h-6 w-6" />
+            <IconBack size={24} color="white" />
           </button>
         </div>
 
@@ -326,7 +373,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
               className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-700/50 hover:bg-gray-700/70 disabled:opacity-40"
               aria-label="Upload from library"
             >
-              <IconUploadAvatar className="h-7 w-7 text-white" />
+              <IconUploadAvatar size={28} color="white" />
             </button>
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
@@ -341,9 +388,10 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   if (step === 'classify') {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         <div className="flex items-center gap-3 p-4 bg-white border-b border-gray-200">
           <button onClick={resetScan} className="p-2 rounded-full hover:bg-gray-100 transition">
-            <IconBack className="h-6 w-6 text-gray-700" />
+            <IconBack size={24} color="#374151" />
           </button>
           <div>
             <h2 className="text-lg font-bold text-gray-800">Choose a Category</h2>
