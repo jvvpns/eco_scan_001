@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { identifyGarbage } from '../services/geminiService';
 import { processScanResult, BADGES } from '../services/gamificationService';
 import { saveScanRecord } from '../services/firestoreService';
-import { IconBack, IconUploadAvatar } from './Icons';
+import { IconBack, IconImageUpload } from './Icons';
 import { useAuth } from '../hooks/useAuth';
 import { useToast, ToastContainer } from './Toast';
 
@@ -32,10 +32,10 @@ interface ScanPageProps {
 // ─── CATEGORY CONFIG ──────────────────────────────────────────
 
 const CATEGORIES = [
-  { id: 'Residual',          label: 'Residual',          description: 'General waste that cannot be recycled',    color: 'bg-gray-500',   hover: 'hover:bg-gray-600'   },
-  { id: 'Special',           label: 'Special',           description: 'Hazardous or special handling required',   color: 'bg-red-500',    hover: 'hover:bg-red-600'    },
+  { id: 'Residual', label: 'Residual', description: 'General waste that cannot be recycled', color: 'bg-gray-500', hover: 'hover:bg-gray-600' },
+  { id: 'Special', label: 'Special', description: 'Hazardous or special handling required', color: 'bg-red-500', hover: 'hover:bg-red-600' },
   { id: 'Non-Biodegradable', label: 'Non-Biodegradable', description: 'Materials that do not decompose naturally', color: 'bg-orange-500', hover: 'hover:bg-orange-600' },
-  { id: 'Biodegradable',     label: 'Biodegradable',     description: 'Organic materials that decompose naturally',color: 'bg-green-500',  hover: 'hover:bg-green-600'  },
+  { id: 'Biodegradable', label: 'Biodegradable', description: 'Organic materials that decompose naturally', color: 'bg-green-500', hover: 'hover:bg-green-600' },
 ];
 
 // ─── COOLDOWN HELPERS ─────────────────────────────────────────
@@ -56,7 +56,7 @@ const getCooldownSecondsLeft = (userId: string): number => {
 const startCooldown = (userId: string) => {
   try {
     localStorage.setItem(getCooldownKey(userId), String(Date.now() + COOLDOWN_SECONDS * 1000));
-  } catch {}
+  } catch { }
 };
 
 // ─── IMAGE COMPRESSION ────────────────────────────────────────
@@ -67,7 +67,7 @@ const compressImage = (dataUrl: string, maxSize = 120): string => {
     const img = new Image();
     img.src = dataUrl;
     const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-    canvas.width  = Math.round(img.width  * scale);
+    canvas.width = Math.round(img.width * scale);
     canvas.height = Math.round(img.height * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) return dataUrl;
@@ -81,26 +81,26 @@ const compressImage = (dataUrl: string, maxSize = 120): string => {
 const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   const { user, unlockedBadgeIds, refreshStats } = useAuth();
 
-  const [step, setStep]                   = useState<ScanStep>('camera');
-  const [imagePreview, setImagePreview]   = useState<string | null>(null);
+  const [step, setStep] = useState<ScanStep>('camera');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [scanResult, setScanResult]       = useState<ScanResult | null>(null);
-  const [isLoading, setIsLoading]         = useState(false);
-  const [error, setError]                 = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [isCapturing, setIsCapturing]     = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [showBadgeAnim, setShowBadgeAnim] = useState<string | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_SECONDS);
-  const [cooldownLeft, setCooldownLeft]   = useState(0);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const [cameraBlocked, setCameraBlocked] = useState(false);
 
   const { toasts, showToast, dismissToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef     = useRef<HTMLVideoElement>(null);
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const streamRef    = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // ── Cooldown ticker ───────────────────────────────────────
   useEffect(() => {
@@ -174,9 +174,9 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   const handleCapture = () => {
     if (!videoRef.current || !canvasRef.current || !isCameraReady) return;
     setIsCapturing(true);
-    const video  = videoRef.current;
+    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width  = video.videoWidth;
+    canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     if (ctx) {
@@ -217,7 +217,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
         return;
       }
 
-      const aiAnswer  = result.garbageType;
+      const aiAnswer = result.garbageType;
       const isCorrect = categoryId.toLowerCase() === aiAnswer.toLowerCase();
 
       // 3. Gamification
@@ -227,12 +227,12 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       // 4. Save to Firestore
       const thumbnail = compressImage(imagePreview, 120);
       await saveScanRecord(user.uid, user.displayName ?? 'Anonymous', {
-        itemName:  result.itemName ?? 'Unknown Item',
+        itemName: result.itemName ?? 'Unknown Item',
         userAnswer: categoryId,
         aiAnswer,
         isCorrect,
         pointsEarned,
-        imageUrl:  thumbnail,
+        imageUrl: thumbnail,
       });
 
       // 5. Start cooldown AFTER successful scan
@@ -373,7 +373,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
               className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-700/50 hover:bg-gray-700/70 disabled:opacity-40"
               aria-label="Upload from library"
             >
-              <IconUploadAvatar size={28} color="white" />
+              <IconImageUpload size={28} color="white" />
             </button>
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
@@ -387,15 +387,15 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
   if (step === 'classify') {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="flex flex-col min-h-screen bg-[#f8fafc]">
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-        <div className="flex items-center gap-3 p-4 bg-white border-b border-gray-200">
-          <button onClick={resetScan} className="p-2 rounded-full hover:bg-gray-100 transition">
-            <IconBack size={24} color="#374151" />
+        <div className="flex items-center gap-3 p-5 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative z-10">
+          <button onClick={resetScan} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+            <IconBack size={24} color="#1f2937" />
           </button>
           <div>
-            <h2 className="text-lg font-bold text-gray-800">Choose a Category</h2>
-            <p className="text-sm text-gray-500">What type of waste is this?</p>
+            <h2 className="text-xl font-black text-gray-900 tracking-tight">Select Category</h2>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-0.5">What's in the picture?</p>
           </div>
         </div>
 
@@ -407,12 +407,17 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
         {error && <p className="text-red-500 text-center mx-4 mt-3 text-sm font-medium">{error}</p>}
 
-        <div className="flex flex-col gap-3 p-4 mt-2">
+        <div className="flex flex-col gap-3 p-5 mt-2 flex-1">
           {CATEGORIES.map(cat => (
             <button key={cat.id} onClick={() => handleCategorySelect(cat.id)}
-              className={`${cat.color} ${cat.hover} text-white rounded-xl py-4 px-5 text-left transition-transform active:scale-95 shadow-md`}>
-              <p className="font-bold text-base">{cat.label}</p>
-              <p className="text-sm opacity-80 mt-0.5">{cat.description}</p>
+              className={`${cat.color} ${cat.hover} text-white rounded-2xl py-4 px-5 text-left transition-all active:scale-[0.98] shadow-md`}>
+              <div className="flex items-center justify-between">
+                <p className="font-black text-lg">{cat.label}</p>
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </div>
+              </div>
+              <p className="text-xs opacity-90 font-medium mt-1 pr-8">{cat.description}</p>
             </button>
           ))}
         </div>
@@ -428,26 +433,37 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
   if (step === 'scanning') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 gap-6 p-8">
-        <div className="relative">
-          <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-green-500" />
-          <span className="absolute inset-0 flex items-center justify-center text-2xl">♻️</span>
-        </div>
-        <div className="text-center">
-          <p className="text-gray-800 text-lg font-bold">AI is analyzing...</p>
-          <p className="text-gray-500 text-sm mt-1">Comparing with your selection</p>
-        </div>
-        {imagePreview && (
-          <div className="w-40 h-40 rounded-xl overflow-hidden shadow-md">
-            <img src={imagePreview} alt="Scanning" className="w-full h-full object-contain bg-black" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f8fafc] gap-8 p-8 relative overflow-hidden">
+        {/* Background decorative circles */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col items-center w-full max-w-sm">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-green-400 rounded-full blur opacity-30 animate-pulse"></div>
+            <div className="animate-spin rounded-full h-24 w-24 border-[5px] border-gray-100 border-t-green-500 relative z-10" />
+            <span className="absolute inset-0 flex items-center justify-center text-3xl z-20">🤖</span>
           </div>
-        )}
-        {selectedCategory && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3">
-            <p className="text-xs text-gray-500 text-center">Your Selection</p>
-            <p className="font-bold text-blue-600 text-center">{selectedCategory}</p>
+
+          <div className="text-center w-full">
+            <p className="text-gray-900 text-xl font-black tracking-tight">AI is analyzing</p>
+            <p className="text-gray-500 text-sm font-medium mt-1 mb-6">Comparing image with your selection</p>
           </div>
-        )}
+
+          <div className="flex w-full items-center gap-4">
+            {imagePreview && (
+              <div className="flex-1 aspect-[4/3] rounded-[1rem] overflow-hidden shadow-sm border border-gray-100 bg-black">
+                <img src={imagePreview} alt="Scanning" className="w-full h-full object-cover" />
+              </div>
+            )}
+            {selectedCategory && (
+              <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-[1rem] p-3 flex flex-col justify-center items-center h-full">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Your Match</p>
+                <p className="font-black text-blue-600 text-center leading-tight text-sm">{selectedCategory}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -506,88 +522,99 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     const unlockedBadge = newlyUnlockedBadges.length ? BADGES.find(b => b.id === newlyUnlockedBadges[0]) : null;
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-6 gap-5 relative overflow-hidden">
+      <div className="flex flex-col min-h-screen bg-[#f8fafc]">
 
-        {/* Badge unlock overlay */}
-        {showBadgeAnim && unlockedBadge && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70">
-            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-2xl">
-              <p className="text-5xl">{unlockedBadge.icon}</p>
-              <p className="text-yellow-500 font-extrabold text-xl">Badge Unlocked!</p>
-              <p className="font-bold text-gray-800 text-lg">{unlockedBadge.name}</p>
-              <p className="text-gray-500 text-sm text-center">{unlockedBadge.description}</p>
+        {/* Splash Header for Result */}
+        <div className={`pt-16 pb-12 px-6 rounded-b-[2.5rem] shadow-sm relative overflow-hidden shrink-0 transition-colors duration-500 flex flex-col items-center text-center ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/5 rounded-full blur-2xl -ml-16 -mb-16 pointer-events-none" />
+
+          {/* Badge unlock overlay */}
+          {showBadgeAnim && unlockedBadge && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+              <div className="bg-white rounded-[2rem] p-8 flex flex-col items-center gap-3 shadow-2xl mx-6 animate-slide-up">
+                <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full flex items-center justify-center shadow-inner mb-2">
+                  <p className="text-6xl">{unlockedBadge.icon}</p>
+                </div>
+                <p className="text-yellow-500 font-black text-xl tracking-tight uppercase">Badge Unlocked!</p>
+                <p className="font-bold text-gray-900 text-2xl text-center leading-tight">{unlockedBadge.name}</p>
+                <p className="text-gray-500 text-sm text-center font-medium mt-1">{unlockedBadge.description}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="relative z-10">
+            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center shadow-lg border-4 border-white pb-1 mb-5 ${isCorrect ? 'bg-green-400' : 'bg-red-400'}`}>
+              <span className="text-5xl">{isCorrect ? '✅' : '❌'}</span>
+            </div>
+
+            <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm">
+              {isCorrect ? 'Spot On! 🎉' : 'Not quite right'}
+            </p>
+            <p className="text-white/90 text-sm font-semibold mt-2 tracking-wide">
+              {isCorrect ? `You earned ${pointsEarned} points` : "Don't worry, keep learning!"}
+            </p>
+            {itemName && (
+              <p className="text-white/70 text-xs mt-1 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">{itemName}</p>
+            )}
+          </div>
+        </div>
+
+        {/* scrollable content */}
+        <div className="flex-1 px-6 pt-8 pb-10 flex flex-col gap-4">
+          {/* Answer comparison */}
+          <div className="flex gap-4 w-full">
+            <div className="flex-1 rounded-[1.25rem] p-4 text-center bg-white shadow-sm border border-gray-100">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Your Answer</p>
+              <p className={`font-black text-lg ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>{userAnswer}</p>
+            </div>
+            <div className="flex-1 rounded-[1.25rem] p-4 text-center bg-white shadow-sm border border-gray-100">
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">AI Match</p>
+              <p className="font-black text-blue-600 text-lg">{aiAnswer}</p>
             </div>
           </div>
-        )}
 
-        {/* Result icon */}
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
-          <span className="text-4xl">{isCorrect ? '✅' : '❌'}</span>
-        </div>
-
-        {/* Verdict */}
-        <div className="text-center">
-          <p className={`text-2xl font-extrabold ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
-            {isCorrect ? 'Correct! 🎉' : 'Not quite right'}
-          </p>
-          <p className="text-gray-500 text-sm mt-1">
-            {isCorrect ? `You've earned ${pointsEarned} points!` : "Don't worry, keep learning!"}
-          </p>
-          {itemName && (
-            <p className="text-gray-400 text-xs mt-1 italic">"{itemName}"</p>
+          {/* Tip on wrong answer */}
+          {!isCorrect && (
+            <div className="w-full bg-amber-50 border border-amber-100 rounded-[1.25rem] p-4 flex gap-3 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <span className="text-sm">💡</span>
+              </div>
+              <div>
+                <p className="text-amber-900 font-bold text-sm">Learning Tip</p>
+                <p className="text-amber-700/80 text-xs font-semibold mt-0.5">
+                  The correct category for this item is <span className="font-black text-amber-900">{aiAnswer}</span>. Next time you'll get it!
+                </p>
+              </div>
+            </div>
           )}
-        </div>
 
-        {/* Answer comparison */}
-        <div className="flex gap-3 w-full">
-          <div className={`flex-1 rounded-xl p-4 text-center border ${isCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-            <p className="text-xs text-gray-500 mb-1">Your Answer</p>
-            <p className="font-bold text-gray-800 text-sm">{userAnswer}</p>
+          {/* Badge unlocked note */}
+          {newlyUnlockedBadges.length > 0 && !showBadgeAnim && (
+            <div className="w-full bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-[1.25rem] p-4 flex items-center justify-center gap-2 shadow-sm">
+              <span className="text-xl">🏅</span>
+              <p className="text-sm font-black text-yellow-800 tracking-tight">
+                New Badge: {BADGES.find(b => b.id === newlyUnlockedBadges[0])?.name}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-auto pt-6 flex flex-col gap-3">
+            {/* Cooldown notice */}
+            <div className="w-full bg-gray-100 rounded-full px-4 py-2 text-center">
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
+                ⏱️ Next scan available in <span className="text-gray-900">{COOLDOWN_SECONDS}s</span>
+              </p>
+            </div>
+
+            {/* Manual back button combined w countdown */}
+            <button onClick={onBack}
+              className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
+              Back to Dashboard
+              <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px]">{redirectCountdown}s</span>
+            </button>
           </div>
-          <div className="flex-1 rounded-xl p-4 text-center bg-blue-50 border border-blue-200">
-            <p className="text-xs text-gray-500 mb-1">AI Classification</p>
-            <p className="font-bold text-blue-600 text-sm">{aiAnswer}</p>
-          </div>
         </div>
-
-        {/* Tip on wrong answer */}
-        {!isCorrect && (
-          <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
-            <p className="text-sm text-gray-600 text-center">
-              💡 <span className="font-medium">Tip:</span> The correct category for this item is{' '}
-              <span className="text-blue-600 font-semibold">{aiAnswer}</span>
-            </p>
-          </div>
-        )}
-
-        {/* Badge unlocked note */}
-        {newlyUnlockedBadges.length > 0 && !showBadgeAnim && (
-          <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-center">
-            <p className="text-sm font-bold text-yellow-700">
-              🏅 Badge Unlocked: {BADGES.find(b => b.id === newlyUnlockedBadges[0])?.name}
-            </p>
-          </div>
-        )}
-
-        {/* Cooldown notice */}
-        <div className="w-full bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-center">
-          <p className="text-orange-600 text-xs font-semibold">
-            ⏱️ Next scan available in {COOLDOWN_SECONDS}s
-          </p>
-        </div>
-
-        {/* Countdown */}
-        <div className="bg-gray-100 rounded-full px-6 py-2">
-          <p className="text-gray-700 font-semibold text-sm">
-            Returning to Dashboard in {redirectCountdown}s...
-          </p>
-        </div>
-
-        {/* Manual back button */}
-        <button onClick={onBack}
-          className="text-gray-400 text-xs underline underline-offset-2 hover:text-gray-600 transition">
-          Go now
-        </button>
       </div>
     );
   }

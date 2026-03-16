@@ -10,6 +10,7 @@ import { Page } from './types';
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
 import { logoutUser } from './services/authService';
+import BottomNav from './components/BottomNav';
 
 // ─── PAGE TRANSITION DURATION (ms) ───────────────────────────
 const TRANSITION_MS = 220;
@@ -154,14 +155,25 @@ function App() {
     transState === 'fading-in'  ? 'opacity-100' :
     'opacity-100';
 
+  const isNavVisible = [Page.DASHBOARD, Page.TIER, Page.PROFILE, Page.SETTINGS].includes(displayedPage);
+
   return (
-    <div className="relative min-h-screen w-full font-sans antialiased">
+    <div className="relative min-h-screen w-full font-sans antialiased bg-[#f8fafc]">
       <div
-        className={`transition-opacity ${opacityClass}`}
+        className={`transition-opacity ${opacityClass} pb-${isNavVisible ? '24' : '0'}`}
         style={{ transitionDuration: `${TRANSITION_MS}ms` }}
       >
         {buildPage(displayedPage, navigateTo, handleScanComplete, scanRefreshTrigger, currentPage)}
       </div>
+      
+      {isNavVisible && (
+        <BottomNav 
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onScanClick={() => navigateTo(Page.SCAN)}
+        />
+      )}
+      
       <PWAInstallBanner />
     </div>
   );

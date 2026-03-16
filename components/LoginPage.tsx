@@ -79,7 +79,7 @@ const FormInput: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       required={required}
-      className={`w-full py-3 rounded-xl bg-white/10 border border-white/30 focus:outline-none focus:ring-2 focus:ring-green-400 text-white placeholder-gray-400 transition ${icon ? 'pl-9 pr-4' : prefix ? 'pl-7 pr-4' : 'px-4'}`}
+      className={`w-full py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 text-gray-800 placeholder-gray-400 font-medium transition-all ${icon ? 'pl-11 pr-4' : prefix ? 'pl-10 pr-4' : 'px-4'}`}
     />
   </div>
 );
@@ -154,29 +154,35 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-green-800 via-green-700 to-emerald-600">
-      <div className="w-full max-w-sm mx-auto">
-
-        {/* ── LOGO ─────────────────────────────────────────── */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center bg-white/20 backdrop-blur-sm p-4 rounded-full shadow-lg border border-white/30">
-            <EcoScanBrandIcon size={64} color="#86efac" />
-          </div>
-          <h1 className="mt-4 text-4xl font-bold text-white tracking-wider">EcoScan</h1>
-          <p className="text-green-200 mt-2 text-sm">Identify garbage, earn points.</p>
+    <div className="min-h-screen flex flex-col bg-green-500 overflow-hidden font-sans">
+      {/* ── SPLASH HEADER ─────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col justify-center items-center text-center p-6 relative pb-12">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-10 left-4 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-40 right-4 w-56 h-56 bg-green-400/20 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 inline-flex items-center justify-center bg-white/20 backdrop-blur-xl p-5 rounded-[2rem] shadow-xl border border-white/30 mb-6 group">
+          <span className="text-6xl drop-shadow-xl group-hover:scale-105 transition-transform">🌍</span>
         </div>
+        
+        <h1 className="mt-2 text-[40px] leading-none font-black text-white tracking-tight relative z-10">EcoScan</h1>
+        <p className="text-green-50 mt-3 text-base font-semibold tracking-wide relative z-10 opacity-90">
+          Scan. Classify. Save the Planet.
+        </p>
+      </div>
 
-        {/* ── CARD ─────────────────────────────────────────── */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-white/20">
-          <h2 className="text-2xl font-semibold text-white text-center mb-6">
-            {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+      {/* ── CARD (Bottom Sheet) ─────────────────────────────────────────── */}
+      <div className="bg-white rounded-t-[2.5rem] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] px-8 pt-10 pb-12 w-full flex-shrink-0 animate-slide-up relative z-20">
+        <div className="w-full max-w-sm mx-auto">
+          <h2 className="text-2xl font-black text-gray-900 text-center mb-8 tracking-tight">
+            {mode === 'login' ? 'Welcome Back 👋' : 'Create Account 🌱'}
           </h2>
 
           {/* LOGIN FORM */}
           {mode === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Email Address
                 </label>
                 <FormInput
@@ -189,7 +195,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Password
                 </label>
                 <FormInput
@@ -205,7 +211,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95 shadow-lg disabled:opacity-50"
+                className="w-full bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-500/20 text-white font-black text-lg py-3.5 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-green-500/30 disabled:opacity-50 mt-2"
               >
                 {loading ? <><SpinnerIcon />Signing in...</> : 'Log In'}
               </button>
@@ -216,7 +222,7 @@ const LoginPage: React.FC = () => {
           {mode === 'register' && (
             <form onSubmit={handleRegister} className="space-y-3">
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Full Name
                 </label>
                 <FormInput
@@ -229,7 +235,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Username
                 </label>
                 <FormInput
@@ -242,7 +248,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Email Address
                 </label>
                 <FormInput
@@ -255,7 +261,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Password
                 </label>
                 <FormInput
@@ -268,7 +274,7 @@ const LoginPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-300 text-sm font-medium mb-1.5">
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">
                   Confirm Password
                 </label>
                 <FormInput
@@ -284,7 +290,7 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95 shadow-lg disabled:opacity-50 mt-1"
+                className="w-full bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-500/20 text-white font-black text-lg py-3.5 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-green-500/30 disabled:opacity-50 mt-4"
               >
                 {loading ? <><SpinnerIcon />Creating account...</> : 'Create Account'}
               </button>
@@ -292,23 +298,25 @@ const LoginPage: React.FC = () => {
           )}
 
           {/* MODE SWITCH */}
-          <div className="mt-5 text-center">
+          <div className="mt-8 text-center pb-4">
             {mode === 'login' ? (
-              <p className="text-gray-300 text-sm">
+              <p className="text-gray-600 text-sm font-medium">
                 Don't have an account?{' '}
                 <button
+                  type="button"
                   onClick={() => switchMode('register')}
-                  className="text-green-300 font-bold hover:text-green-200 transition"
+                  className="text-green-600 font-bold hover:text-green-700 transition"
                 >
                   Sign up
                 </button>
               </p>
             ) : (
-              <p className="text-gray-300 text-sm">
+              <p className="text-gray-600 text-sm font-medium">
                 Already have an account?{' '}
                 <button
+                  type="button"
                   onClick={() => switchMode('login')}
-                  className="text-green-300 font-bold hover:text-green-200 transition"
+                  className="text-green-600 font-bold hover:text-green-700 transition"
                 >
                   Log in
                 </button>

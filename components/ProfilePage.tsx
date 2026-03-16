@@ -111,170 +111,139 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
     catch (e) { setLoggingOut(false); }
   };
 
-  const navItems = [
-    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <IconHome        size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <IconMissions    size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: null,           label: 'Scan',     icon: () => null },
-    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <IconLeaderboard size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <IconProfile     size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-  ];
+
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] font-sans">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-gray-900 font-black text-xl tracking-tight">Profile</h1>
-          <p className="text-gray-500 text-xs font-medium mt-0.5">Your EcoScan journey</p>
-        </div>
+      {/* ── SPLASH HEADER ───────────────────────────────── */}
+      <div className="bg-green-500 rounded-b-[2rem] px-6 pt-12 pb-10 shadow-sm relative overflow-hidden shrink-0">
+        <div className="absolute top-0 right-0 w-52 h-52 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-36 h-36 bg-green-400/20 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none" />
+
+        {/* Settings icon */}
         <button
           onClick={() => onNavigate(Page.APP_SETTINGS)}
-          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 active:scale-95 transition-all"
+          className="absolute top-12 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 z-10"
         >
-          <IconSettings size={22} color="currentColor" />
+          <IconSettings size={20} color="currentColor" />
         </button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-28 space-y-4">
-
-        {/* ── SKELETON WHILE LOADING ─────────────────────────── */}
         {loading ? (
-          <>
-            {/* Profile card skeleton */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse">
-              <div className="flex items-center gap-4">
-                <div className="w-[72px] h-[72px] rounded-full bg-gray-200 shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                  <div className="h-3 bg-gray-200 rounded w-1/3" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
-                </div>
-              </div>
-              <div className="mt-4 h-10 bg-gray-100 rounded-xl" />
-            </div>
-            {/* EcoPoints banner skeleton */}
-            <div className="bg-gray-200 rounded-2xl h-24 animate-pulse" />
-            {/* Stats skeleton */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse space-y-3">
-              <div className="h-3 bg-gray-200 rounded w-1/3" />
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex justify-between py-2 border-b border-gray-50">
-                  <div className="h-3 bg-gray-200 rounded w-1/3" />
-                  <div className="h-3 bg-gray-200 rounded w-1/6" />
-                </div>
-              ))}
-            </div>
-          </>
+          <div className="flex flex-col items-center gap-3 animate-pulse relative z-10">
+            <div className="w-20 h-20 rounded-full bg-white/30" />
+            <div className="h-4 w-32 bg-white/30 rounded" />
+            <div className="h-3 w-24 bg-white/20 rounded" />
+          </div>
         ) : (
-          <>
-        {/* ── PROFILE CARD ───────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-4">
-            {/* Avatar */}
-            <div className="relative shrink-0">
+          <div className="relative z-10 flex flex-col items-center text-center gap-2">
+            <div className="relative">
               <img
                 src={currentAvatar}
                 alt="avatar"
-                className="w-18 h-18 rounded-full object-cover shadow-md"
-                style={{ width: 72, height: 72 }}
+                className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
               />
+              <button
+                onClick={openEditModal}
+                className="absolute bottom-0 right-0 w-7 h-7 bg-green-400 hover:bg-green-300 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white transition-colors"
+              >
+                <IconEditProfile size={13} color="white" />
+              </button>
             </div>
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 font-black text-lg truncate">
-                {userStats?.displayName ?? 'EcoUser'}
-              </p>
-              <p className="text-green-600 text-sm font-semibold truncate">
-                @{userStats?.username || 'username'}
-              </p>
-              <p className="text-gray-400 text-xs truncate">{user?.email}</p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <IconEcoPoints size={10} color="#15803d" /> Level {userStats?.level ?? 1}
-                </span>
-                <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <IconStreak size={10} color="#ea580c" /> {userStats?.streak ?? 0}
-                </span>
-              </div>
+            <div>
+              <p className="text-white font-black text-xl tracking-tight">{userStats?.displayName ?? 'EcoUser'}</p>
+              <p className="text-green-100 text-sm font-semibold">@{userStats?.username || 'username'}</p>
             </div>
-          </div>
-
-          {/* Edit Profile Button */}
-          <button
-            onClick={openEditModal}
-            className="mt-4 w-full bg-green-50 border border-green-200 text-green-700 font-bold text-sm rounded-xl py-2.5 active:scale-95 transition hover:bg-green-100 flex items-center justify-center gap-2"
-          >
-            <IconEditProfile size={16} color="#15803d" /> Edit Profile
-          </button>
-        </div>
-
-        {/* ── ECO POINTS BANNER ──────────────────────────────── */}
-        <div className="bg-green-500 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-green-100 text-xs font-semibold">Total EcoPoints</p>
-            <p className="text-white font-black text-3xl leading-none">{userStats?.ecoPoints ?? 0}</p>
-            <p className="text-green-200 text-xs mt-1">
-              {100 - ((userStats?.ecoPoints ?? 0) % 100)} pts to Level {(userStats?.level ?? 1) + 1}
-            </p>
-          </div>
-          <IconOrganic size={52} color="rgba(255,255,255,0.8)" />
-        </div>
-
-        {/* ── SCAN STATS ─────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <p className="text-gray-900 font-bold text-sm mb-1">Scan Statistics</p>
-          <StatRow label="Total Scans"     value={userStats?.totalScans ?? 0}                       icon={<IconScan      size={16} color="#3b82f6" />} />
-          <StatRow label="Correct Answers" value={userStats?.correctScans ?? 0}                     icon={<IconRecycling size={16} color="#16a34a" />} />
-          <StatRow label="Accuracy"        value={`${accuracy}%`}                                  icon={<IconEcoPoints size={16} color="#6366f1" />} />
-          <StatRow label="Badges Earned"   value={`${unlockedBadgeIds.length} / ${BADGES.length}`} icon={<IconBadge     size={16} color="#d97706" />} />
-        </div>
-
-        {/* ── ENVIRONMENTAL IMPACT ───────────────────────────── */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-green-100">
-          <p className="text-gray-900 font-bold text-sm mb-1">Environmental Impact</p>
-          <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} icon={<IconScan     size={16} color="#3b82f6" />} />
-          <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}          icon={<IconOrganic  size={16} color="#16a34a" />} />
-          <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}      icon={<IconRecycling size={16} color="#06b6d4" />} />
-          <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}            icon={<IconOrganic  size={16} color="#15803d" />} />
-        </div>
-
-        {/* ── BADGES ─────────────────────────────────────────── */}
-        {unlockedBadgeIds.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-yellow-100">
-            <p className="text-gray-900 font-bold text-sm mb-3">Badges Earned</p>
-            <div className="flex flex-wrap gap-2">
-              {BADGES.filter(b => unlockedBadgeIds.includes(b.id)).map(badge => (
-                <div key={badge.id} className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1.5">
-                  <span className="text-sm">{badge.icon}</span>
-                  <span className="text-xs font-bold text-yellow-700">{badge.name}</span>
-                </div>
-              ))}
+            <div className="flex items-center gap-2 mt-1">
+              <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30">
+                ⭐ Level {userStats?.level ?? 1}
+              </span>
+              <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30">
+                🔥 {userStats?.streak ?? 0} Streak
+              </span>
             </div>
           </div>
         )}
+      </div>
 
-        {/* ── LOGOUT ─────────────────────────────────────────── */}
-        <button
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="w-full bg-white border border-red-200 text-red-500 font-bold rounded-2xl py-4 text-sm hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
-        >
-          {loggingOut ? 'Signing out...' : 'Sign Out'}
-        </button>
+      <div className="flex-1 overflow-y-auto px-5 pt-6 pb-28 space-y-4">
+        {loading ? (
+          <>
+            <div className="bg-white rounded-[1.25rem] h-28 animate-pulse border border-gray-100" />
+            <div className="bg-white rounded-[1.25rem] h-44 animate-pulse border border-gray-100" />
+          </>
+        ) : (
+          <>
+          {/* ── ECO POINTS BANNER ──────────────────────────────── */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-[1.25rem] p-5 flex items-center justify-between shadow-md shadow-green-200/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
+            <div className="relative z-10">
+              <p className="text-green-100 text-xs font-bold uppercase tracking-wider">Total EcoPoints</p>
+              <p className="text-white font-black text-4xl leading-none mt-1">{userStats?.ecoPoints ?? 0}</p>
+              <p className="text-green-200 text-xs mt-1.5 font-medium">
+                {100 - ((userStats?.ecoPoints ?? 0) % 100)} pts to Level {(userStats?.level ?? 1) + 1}
+              </p>
+            </div>
+            <div className="relative z-10">
+              <IconOrganic size={56} color="rgba(255,255,255,0.7)" />
+            </div>
+          </div>
 
-          </> )} {/* end loading ternary */}
+          {/* ── SCAN STATS ─────────────────────────────────────── */}
+          <div className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-gray-100">
+            <p className="text-gray-900 font-bold text-base mb-3 tracking-tight">Scan Statistics</p>
+            <StatRow label="Total Scans"     value={userStats?.totalScans ?? 0}                       icon={<IconScan      size={16} color="#3b82f6" />} />
+            <StatRow label="Correct Answers" value={userStats?.correctScans ?? 0}                     icon={<IconRecycling size={16} color="#16a34a" />} />
+            <StatRow label="Accuracy"        value={`${accuracy}%`}                                  icon={<IconEcoPoints size={16} color="#6366f1" />} />
+            <StatRow label="Badges Earned"   value={`${unlockedBadgeIds.length} / ${BADGES.length}`} icon={<IconBadge     size={16} color="#d97706" />} />
+          </div>
+
+          {/* ── ENVIRONMENTAL IMPACT ───────────────────────────── */}
+          <div className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-green-100">
+            <p className="text-gray-900 font-bold text-base mb-3 tracking-tight">Environmental Impact</p>
+            <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} icon={<IconScan     size={16} color="#3b82f6" />} />
+            <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}          icon={<IconOrganic  size={16} color="#16a34a" />} />
+            <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}      icon={<IconRecycling size={16} color="#06b6d4" />} />
+            <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}            icon={<IconOrganic  size={16} color="#15803d" />} />
+          </div>
+
+          {/* ── BADGES ─────────────────────────────────────────── */}
+          {unlockedBadgeIds.length > 0 && (
+            <div className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-amber-100">
+              <p className="text-gray-900 font-bold text-base mb-3 tracking-tight">Badges Earned</p>
+              <div className="flex flex-wrap gap-2">
+                {BADGES.filter(b => unlockedBadgeIds.includes(b.id)).map(badge => (
+                  <div key={badge.id} className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
+                    <span className="text-sm">{badge.icon}</span>
+                    <span className="text-xs font-bold text-amber-800">{badge.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── LOGOUT ─────────────────────────────────────────── */}
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full bg-white border border-red-200 text-red-500 font-bold rounded-[1.25rem] py-4 text-sm hover:bg-red-50 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+          >
+            {loggingOut ? 'Signing out...' : '→ Sign Out'}
+          </button>
+
+          </> /* end loading ternary */
+        )}
       </div>
 
       {/* ── EDIT PROFILE MODAL ─────────────────────────────── */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
-          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 pb-10 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-900 font-black text-lg">Edit Profile</h3>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 p-1 hover:text-gray-600 transition">
-                <IconClose size={22} color="currentColor" />
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-t-[2rem] w-full max-w-lg p-6 pb-10 space-y-5 animate-slide-up max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-gray-900 font-black text-xl tracking-tight">Edit Profile</h3>
+              <button onClick={() => setShowEditModal(false)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <IconClose size={22} color="#6b7280" />
               </button>
             </div>
 
@@ -308,75 +277,43 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
 
             {/* Name */}
             <div>
-              <label className="block text-gray-600 text-sm font-semibold mb-1.5">Full Name</label>
+              <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Full Name</label>
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Your full name"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-800 text-sm"
+                className="w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 text-gray-800 placeholder-gray-400 font-medium transition-all text-sm"
               />
             </div>
 
             {/* Username */}
             <div>
-              <label className="block text-gray-600 text-sm font-semibold mb-1.5">Username</label>
+              <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Username</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">@</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">@</span>
                 <input
                   type="text"
                   value={editUsername}
                   onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/\s/g, '_'))}
                   placeholder="your_username"
-                  className="w-full pl-7 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400 text-gray-800 text-sm"
+                  className="w-full pl-8 pr-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 text-gray-800 placeholder-gray-400 font-medium transition-all text-sm"
                 />
               </div>
             </div>
 
-            {editError && <p className="text-red-500 text-sm text-center">{editError}</p>}
+            {editError && <p className="text-red-500 text-sm text-center font-medium">{editError}</p>}
 
             <button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+              className="w-full bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-500/20 text-white font-black text-base py-4 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-green-500/30 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
       )}
-
-      {/* ── BOTTOM NAVIGATION ──────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-xl z-20">
-        <div className="flex items-end justify-around px-2 pt-2 pb-3">
-          {navItems.map((item) => {
-            if (item.page === null) {
-              return (
-                <div key="scan" className="flex flex-col items-center -mt-6">
-                  <button
-                    onClick={() => onNavigate(Page.SCAN)}
-                    className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 flex items-center justify-center shadow-lg shadow-green-200 transition-all"
-                  >
-                    <IconScanNav size={28} color="white" />
-                  </button>
-                  <span className="text-green-600 text-xs font-bold mt-1.5">Scan</span>
-                </div>
-              );
-            }
-            const isActive = currentPage === item.page;
-            return (
-              <button key={item.page} onClick={() => item.page && onNavigate(item.page)}
-                className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all">
-                {item.icon(isActive)}
-                <span className={`text-xs font-semibold transition-colors ${isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
     </div>
   );
 };

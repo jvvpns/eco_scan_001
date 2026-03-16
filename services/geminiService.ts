@@ -23,7 +23,7 @@ export const identifyGarbage = async (
 ): Promise<GarbageIdentificationResult> => {
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: [
         {
           role: 'user',
@@ -43,7 +43,7 @@ export const identifyGarbage = async (
           type: Type.OBJECT,
           properties: {
             isWasteItem: { type: Type.BOOLEAN },
-            itemName:    { type: Type.STRING },
+            itemName: { type: Type.STRING },
             garbageType: {
               type: Type.STRING,
               enum: ['Special', 'Non-Biodegradable', 'Biodegradable', 'Residual'],
@@ -75,10 +75,10 @@ export const identifyGarbage = async (
     }
 
     return {
-      itemName:        result.itemName,
-      garbageType:     result.garbageType as GarbageType,
-      points:          pointsMap[result.garbageType as GarbageType] || 0,
-      description:     result.description,
+      itemName: result.itemName,
+      garbageType: result.garbageType as GarbageType,
+      points: pointsMap[result.garbageType as GarbageType] || 0,
+      description: result.description,
       noWasteDetected: false,
     };
   } catch (error) {

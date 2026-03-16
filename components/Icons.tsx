@@ -41,29 +41,26 @@ const base = (paths: React.ReactNode, size: number, color: string, className?: s
 export const IconHome: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
   base(
     <>
-      <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V10.5Z" />
-      <path d="M9 21V16C9 15.45 9.45 15 10 15H14C14.55 15 15 15.45 15 16V21" />
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeWidth="1.5" />
+      <polyline points="9 22 9 12 15 12 15 22" strokeWidth="1.5" />
     </>,
     size, color, className
   );
 
 export const IconMissions: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
   base(
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4" />
-      <path d="M17.5 6.5L15.5 8.5" />
-    </>,
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" strokeWidth="1.5" strokeLinejoin="miter" />,
     size, color, className
   );
 
 export const IconScanNav: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
   base(
     <>
-      <rect x="3" y="5" width="18" height="14" rx="3" />
-      <path d="M9 9H15M9 12H12" />
-      <circle cx="17" cy="15" r="3" fill={color} stroke={color} />
-      <path d="M15.8 15L16.6 15.8L18.2 14.2" stroke="white" strokeWidth="1.5" />
+      <path d="M4 8V6a2 2 0 0 1 2-2h2" strokeWidth="2" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h2" strokeWidth="2" />
+      <path d="M16 4h2a2 2 0 0 1 2 2v2" strokeWidth="2" />
+      <path d="M16 20h2a2 2 0 0 0 2-2v-2" strokeWidth="2" />
+      <circle cx="12" cy="12" r="3" strokeWidth="2" />
     </>,
     size, color, className
   );
@@ -71,9 +68,10 @@ export const IconScanNav: React.FC<IconProps> = ({ size = 24, color = 'currentCo
 export const IconLeaderboard: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
   base(
     <>
-      <path d="M8 18V13H5L12 4L19 13H16V18" />
-      <path d="M9 21H15" />
-      <path d="M8 18H16" />
+      <rect x="14" y="5" width="4" height="15" rx="1" strokeWidth="1.5" />
+      <rect x="6" y="11" width="4" height="9" rx="1" strokeWidth="1.5" />
+      <path d="M10 20h8" strokeWidth="1.5" />
+      <path d="M6 20h4" strokeWidth="1.5" />
     </>,
     size, color, className
   );
@@ -81,8 +79,8 @@ export const IconLeaderboard: React.FC<IconProps> = ({ size = 24, color = 'curre
 export const IconProfile: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
   base(
     <>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20C4 17.2 7.6 15 12 15C16.4 15 20 17.2 20 20" />
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="1.5" />
+      <circle cx="12" cy="7" r="4" strokeWidth="1.5" />
     </>,
     size, color, className
   );
@@ -192,6 +190,24 @@ export const IconUploadAvatar: React.FC<IconProps> = ({ size = 24, color = 'curr
       <circle cx="12" cy="9" r="5" />
       <path d="M3 21C3 17.7 7 15 12 15C17 15 21 17.7 21 21" />
       <path d="M16 3L18 5L21 2" />
+    </>,
+    size, color, className
+  );
+
+/**
+ * IconImageUpload — Photo frame with an upward arrow, used for "Upload from Gallery"
+ * actions on the Scanner page. Distinct from IconUploadAvatar (which is avatar-specific).
+ */
+export const IconImageUpload: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      {/* Photo frame */}
+      <rect x="3" y="5" width="18" height="14" rx="2" strokeWidth="1.75" />
+      {/* Mountain landscape inside frame */}
+      <path d="M3 15l4-4 4 4 3-3 5 5" strokeWidth="1.5" strokeLinejoin="round" />
+      {/* Upload arrow pointing up-right from corner */}
+      <path d="M16 3l4 0 0 4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 3l-5 5" strokeWidth="2" strokeLinecap="round" />
     </>,
     size, color, className
   );

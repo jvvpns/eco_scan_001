@@ -95,6 +95,189 @@ const formatTimestamp = (ts: any): string => {
   } catch { return ''; }
 };
 
+// ─── WASTE TYPES DATA ─────────────────────────────────────────
+
+const WASTE_TYPES_DATA = [
+  {
+    id: 'Biodegradable',
+    label: 'Biodegradable',
+    bgActive: 'bg-green-500',
+    bgIdle: 'bg-green-100',
+    textIdle: 'text-green-700',
+    borderColor: 'border-green-200',
+    description: 'Organic waste that decomposes naturally through microorganisms.',
+    examples: ['Food scraps', 'Fruit peels', 'Vegetable waste', 'Leaves & garden waste'],
+    tip: 'Can be composted or placed in biodegradable waste bins.',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? 'white' : '#15803d'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3C12 3 7 7 7 13C7 16.3 9.2 19 12 19C14.8 19 17 16.3 17 13C17 7 12 3 12 3Z" />
+        <path d="M12 19V22" />
+        <path d="M9 21H15" />
+        <path d="M12 10C12 10 9.5 12 9.5 14" strokeWidth="1.5" />
+      </svg>
+    ),
+  },
+  {
+    id: 'Non-Biodegradable',
+    label: 'Non-Biodegradable',
+    bgActive: 'bg-orange-500',
+    bgIdle: 'bg-orange-100',
+    textIdle: 'text-orange-700',
+    borderColor: 'border-orange-200',
+    description: 'Materials that do not decompose naturally and persist in the environment.',
+    examples: ['Plastic bottles', 'Glass containers', 'Metal cans', 'Styrofoam'],
+    tip: 'Separate and recycle when possible.',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? 'white' : '#c2410c'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3L8.5 8H11V13H13V8H15.5L12 3Z" />
+        <path d="M5.5 10.5L3.5 15H6.5L8 19H11L9 15H12L9.5 10.5H5.5Z" />
+        <path d="M18.5 10.5L20.5 15H17.5L16 19H13L15 15H12L14.5 10.5H18.5Z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'Residual',
+    label: 'Residual',
+    bgActive: 'bg-gray-600',
+    bgIdle: 'bg-gray-100',
+    textIdle: 'text-gray-700',
+    borderColor: 'border-gray-200',
+    description: 'Waste that cannot be recycled or composted — typically goes to landfill.',
+    examples: ['Contaminated packaging', 'Used tissues', 'Disposable hygiene products'],
+    tip: 'Dispose properly in residual waste bins.',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? 'white' : '#374151'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 6H21" />
+        <path d="M8 6V4H16V6" />
+        <path d="M19 6L18 20H6L5 6" />
+        <path d="M10 11V16M14 11V16" />
+      </svg>
+    ),
+  },
+  {
+    id: 'Special',
+    label: 'Special',
+    bgActive: 'bg-red-500',
+    bgIdle: 'bg-red-100',
+    textIdle: 'text-red-700',
+    borderColor: 'border-red-200',
+    description: 'Waste requiring special disposal due to environmental or safety risks.',
+    examples: ['Batteries', 'Electronics', 'Light bulbs', 'Chemicals'],
+    tip: 'Bring to designated special waste collection points.',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+        stroke={active ? 'white' : '#b91c1c'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3L22 8.5V15.5L12 21L2 15.5V8.5L12 3Z" />
+        <path d="M12 8V12" />
+        <circle cx="12" cy="15" r="1" fill={active ? 'white' : '#b91c1c'} stroke={active ? 'white' : '#b91c1c'} />
+      </svg>
+    ),
+  },
+];
+
+// ─── WASTE TYPES SECTION (expandable accordion) ───────────────
+
+const WasteTypesSection: React.FC = () => {
+  const [expandedType, setExpandedType] = useState<string | null>(null);
+  const toggle = (id: string) => setExpandedType(prev => prev === id ? null : id);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-gray-900 font-bold text-lg tracking-tight">Waste Types</p>
+        <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition">View All</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {WASTE_TYPES_DATA.map(type => {
+          const isOpen = expandedType === type.id;
+          return (
+            <button
+              key={type.id}
+              onClick={() => toggle(type.id)}
+              className={`text-left rounded-[1.25rem] border transition-all duration-300 active:scale-[0.98] overflow-hidden shadow-sm ${
+                isOpen
+                  ? `${type.bgActive} border-transparent shadow-lg`
+                  : `bg-white ${type.borderColor} hover:shadow-md`
+              }`}
+              aria-expanded={isOpen}
+            >
+              {/* ── Always-visible header row ─────────────────── */}
+              <div className="flex items-center gap-3 p-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${
+                  isOpen ? 'bg-white/20' : type.bgIdle
+                }`}>
+                  {type.icon(isOpen)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-bold text-sm leading-tight transition-colors duration-300 ${
+                    isOpen ? 'text-white' : type.textIdle
+                  }`}>{type.label}</p>
+                  {!isOpen && (
+                    <p className="text-gray-400 text-[10px] font-medium mt-0.5">Tap to learn more</p>
+                  )}
+                </div>
+                {/* Chevron arrow */}
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke={isOpen ? 'rgba(255,255,255,0.75)' : '#9ca3af'}
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+
+              {/* ── Expandable detail panel ───────────────────── */}
+              <div
+                className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                  isOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <div className="px-4 pb-4 space-y-3">
+                  <div className="border-t border-white/20" />
+
+                  {/* Description */}
+                  <p className="text-white/90 text-xs font-medium leading-relaxed">
+                    {type.description}
+                  </p>
+
+                  {/* Examples */}
+                  <div>
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1.5">Examples</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {type.examples.map(ex => (
+                        <span key={ex} className="bg-white/20 text-white/95 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-white/20">
+                          {ex}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tip card */}
+                  <div className="bg-white/15 rounded-xl p-2.5 flex gap-2 items-start border border-white/20">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      className="shrink-0 mt-0.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v4" />
+                      <circle cx="12" cy="16" r="0.75" fill="rgba(255,255,255,0.85)" stroke="none" />
+                    </svg>
+                    <p className="text-white/90 text-[10px] font-semibold leading-relaxed">{type.tip}</p>
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
 const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -177,42 +360,50 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     treesSaved:      userStats?.treesSaved      ?? 0,
   };
 
-  const navItems = [
-    { page: Page.DASHBOARD, label: 'Home',     icon: (a: boolean) => <IconHome        size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: Page.TIER,      label: 'Missions', icon: (a: boolean) => <IconMissions    size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: null,           label: 'Scan',     icon: () => null },
-    { page: Page.PROFILE,   label: 'Leaders',  icon: (a: boolean) => <IconLeaderboard size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-    { page: Page.SETTINGS,  label: 'Profile',  icon: (a: boolean) => <IconProfile     size={24} color={a ? '#16a34a' : '#9ca3af'} /> },
-  ];
-
   return (
-    <div className="flex flex-col min-h-screen bg-[#f0fdf4] font-sans">
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] font-sans">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-3 bg-[#f0fdf4] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shadow-md">
-            <span className="text-xl">♻️</span>
-          </div>
+      {/* ── SPLASH HEADER ─────────────────────────────────────────── */}
+      <div className="bg-green-500 rounded-b-[2rem] px-6 pt-12 pb-8 shadow-sm relative overflow-hidden shrink-0">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-400/20 rounded-full blur-2xl -ml-12 -mb-12 pointer-events-none" />
+        
+        <div className="relative z-10 flex items-center justify-between">
           <div>
-            <h1 className="text-gray-900 font-black text-lg leading-tight tracking-tight">
-              EcoScanner
-            </h1>
-            <p className="text-gray-500 text-xs font-medium">
-              {user?.displayName
-                ? `Welcome, ${user.displayName.split(' ')[0]}!`
-                : 'Learn, Play, and Save the Planet'}
+            <p className="text-green-100 text-sm font-medium mb-0.5">
+              Good morning,
             </p>
+            <h1 className="text-white font-black text-2xl tracking-tight">
+              {user?.displayName ? user.displayName.split(' ')[0] : 'Eco Warrior'} 👋
+            </h1>
+          </div>
+          <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 shadow-sm">
+            <IconNotifications size={20} color="currentColor" />
+          </button>
+        </div>
+
+        {/* Search / Action bar overlapping inside header */}
+        <div className="relative z-10 mt-6">
+          <div className="flex items-center bg-white rounded-2xl px-4 py-3.5 shadow-lg shadow-green-900/10 mb-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Search waste item..." 
+              className="flex-1 bg-transparent border-none outline-none ml-3 text-sm text-gray-800 placeholder-gray-400 font-medium"
+            />
           </div>
         </div>
-        <button className="relative w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 hover:bg-green-50 hover:text-green-600 active:scale-95 transition-all">
-          <IconNotifications size={20} color="currentColor" />
-        </button>
       </div>
 
       {/* ── SCROLLABLE CONTENT ─────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-5 pb-28 space-y-4">
+      <div className="flex-1 overflow-y-auto px-5 pt-6 pb-6 space-y-6">
+
+        {/* WASTE TYPES (CATEGORIES) */}
+        <WasteTypesSection />
 
         {/* GAMIFICATION STATS */}
         <div className="flex gap-3">
@@ -220,130 +411,116 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <><StatSkeleton /><StatSkeleton /><StatSkeleton /></>
           ) : (
             <>
-              <StatCard label="EcoPoints" value={stats.ecoPoints}     color="bg-green-500"  emoji="🌿" />
-              <StatCard label="Level"     value={stats.level}         color="bg-blue-500"   emoji="⭐" />
-              <StatCard label="Streak"    value={`${stats.streak}🔥`} color="bg-orange-500" emoji=""   />
+              <StatCard label="EcoPoints" value={stats.ecoPoints}     color="bg-gradient-to-br from-green-500 to-green-600 shadow-md shadow-green-200/50"  emoji="🌿" />
+              <StatCard label="Level"     value={stats.level}         color="bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-200/50"   emoji="⭐" />
+              <StatCard label="Streak"    value={`${stats.streak}🔥`} color="bg-gradient-to-br from-orange-400 to-orange-500 shadow-md shadow-orange-200/50" emoji=""   />
             </>
           )}
         </div>
 
         {/* DAILY ECO TIP */}
         {!tipDismissed && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-amber-100 flex gap-3 items-start">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <span className="text-lg">💡</span>
+          <div className="bg-white rounded-[1.25rem] p-4 shadow-sm shadow-gray-200/50 border border-amber-100 flex gap-4 items-start relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-100/50 to-transparent rounded-bl-full pointer-events-none" />
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+              <span className="text-xl">💡</span>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 pt-0.5">
               <p className="text-gray-900 font-bold text-sm">Daily Eco Tip</p>
-              <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{dailyTip}</p>
+              <p className="text-gray-500 text-xs mt-1 leading-relaxed font-medium">{dailyTip}</p>
             </div>
-            <button onClick={() => setTipDismissed(true)} className="text-gray-300 hover:text-gray-500 text-lg leading-none mt-0.5 shrink-0">×</button>
+            <button onClick={() => setTipDismissed(true)} className="text-gray-300 hover:text-gray-500 text-lg leading-none mt-1 shrink-0 transition-colors">×</button>
           </div>
         )}
 
-        {/* ENVIRONMENTAL IMPACT */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-green-100">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">🌍</span>
-            <div>
-              <p className="text-gray-900 font-bold text-sm">Your Environmental Impact</p>
-              <p className="text-gray-400 text-xs">Making a difference, one scan at a time</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <ImpactCard label="Items Classified" value={stats.itemsClassified} unit="items" emoji="🏅" bg="bg-blue-50"    />
-            <ImpactCard label="CO₂ Saved"        value={stats.co2Saved}        unit="kg"    emoji="🌱" bg="bg-green-50"   />
-            <ImpactCard label="Waste Diverted"   value={stats.wasteDiverted}   unit="kg"    emoji="♻️" bg="bg-purple-50"  />
-            <ImpactCard label="Trees Saved"      value={stats.treesSaved}      unit="trees" emoji="🌳" bg="bg-emerald-50" />
-          </div>
-        </div>
-
         {/* RECENT SCANS — from Firestore */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-gray-900 font-bold text-sm">Recent Scans</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-gray-900 font-bold text-lg tracking-tight">Recent Scans</p>
             {recentScans.length > 0 && (
-              <button className="text-green-600 text-xs font-semibold">See all</button>
+              <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition">See all</button>
             )}
           </div>
 
           {scansLoading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <ScanSkeleton />
               <ScanSkeleton />
             </div>
           ) : scansError ? (
-            <div className="bg-white rounded-2xl p-6 flex flex-col items-center gap-3 shadow-sm border border-red-100">
+            <div className="bg-white rounded-[1.25rem] p-6 flex flex-col items-center gap-3 shadow-sm border border-red-100">
               <span className="text-3xl">⚠️</span>
               <p className="text-gray-700 font-bold text-sm">Failed to load scans</p>
               <p className="text-gray-400 text-xs text-center">Check your connection and try again.</p>
               <button
                 onClick={fetchRecentScans}
-                className="mt-1 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-5 py-2 rounded-xl active:scale-95 transition-all"
+                className="mt-1 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl active:scale-95 transition-all shadow-md shadow-green-200/50"
               >
                 Retry
               </button>
             </div>
           ) : recentScans.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {recentScans.map(scan => {
                 const categoryColor = CATEGORY_COLORS[scan.aiAnswer] ?? 'bg-gray-100 text-gray-600';
                 const isDeleting = deletingId === scan.id;
                 return (
-                  <div key={scan.id} className={`bg-white rounded-2xl p-3 flex items-center gap-3 shadow-sm border border-gray-100 transition-opacity ${isDeleting ? 'opacity-40' : 'opacity-100'}`}>
+                  <div key={scan.id} className={`bg-white rounded-[1.25rem] p-3 flex items-center gap-3.5 shadow-sm shadow-gray-200/50 border border-gray-100/50 transition-opacity ${isDeleting ? 'opacity-40' : 'opacity-100'}`}>
                     {/* Thumbnail or fallback */}
                     {scan.imageUrl ? (
-                      <img src={scan.imageUrl} alt={scan.itemName} className="w-14 h-14 rounded-xl object-cover shrink-0" />
+                      <img src={scan.imageUrl} alt={scan.itemName} className="w-16 h-16 rounded-[1rem] object-cover shrink-0 shadow-sm" />
                     ) : (
-                      <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center shrink-0 text-2xl">♻️</div>
+                      <div className="w-16 h-16 rounded-[1rem] bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center shrink-0 text-2xl shadow-sm border border-green-200/30">♻️</div>
                     )}
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-gray-900 font-bold text-sm truncate">{scan.itemName || 'Unknown Item'}</p>
-                      <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 ${categoryColor}`}>
+                    <div className="flex-1 min-w-0 py-1">
+                      <p className="text-gray-900 font-black text-sm truncate">{scan.itemName || 'Unknown Item'}</p>
+                      <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md mt-1 mb-1 tracking-wide ${categoryColor}`}>
                         {scan.aiAnswer}
                       </span>
-                      <p className="text-gray-300 text-xs mt-0.5">{formatTimestamp(scan.timestamp)}</p>
-                    </div>
-
-                    {/* Points */}
-                    <div className="text-right shrink-0">
-                      <p className={`font-black text-lg ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
-                        {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
+                      <p className="text-gray-400 text-[11px] font-medium flex items-center gap-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {formatTimestamp(scan.timestamp)}
                       </p>
-                      <p className="text-gray-400 text-xs">{scan.isCorrect ? 'pts' : 'missed'}</p>
                     </div>
 
-                    {/* Delete button */}
-                    <button
-                      onClick={() => handleDeleteScan(scan)}
-                      disabled={!!deletingId}
-                      className="ml-1 w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-400 hover:text-red-600 active:scale-90 transition-all disabled:opacity-30 shrink-0"
-                      aria-label="Delete scan"
-                    >
-                      {isDeleting ? (
-                        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                        </svg>
-                      ) : (
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-                          <path d="M10 11v6M14 11v6" />
-                          <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
-                        </svg>
-                      )}
-                    </button>
+                    {/* Points & Actions */}
+                    <div className="flex flex-col items-end gap-1.5 shrink-0 pr-1">
+                      <div className="text-right">
+                        <p className={`font-black text-lg leading-none ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
+                          {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
+                        </p>
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">{scan.isCorrect ? 'pts' : 'missed'}</p>
+                      </div>
+                      
+                      {/* Delete button (small and subtle) */}
+                      <button
+                        onClick={() => handleDeleteScan(scan)}
+                        disabled={!!deletingId}
+                        className="w-7 h-7 rounded-lg bg-gray-50 hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all disabled:opacity-30"
+                        aria-label="Delete scan"
+                      >
+                        {isDeleting ? (
+                          <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-2 shadow-sm border border-gray-100">
-              <span className="text-4xl">🗑️</span>
+            <div className="bg-white rounded-[1.25rem] p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 border-dashed">
+              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-3xl mb-1">🗑️</div>
               <p className="text-gray-700 font-bold text-sm">No scans yet</p>
-              <p className="text-gray-400 text-xs text-center">
+              <p className="text-gray-400 text-xs text-center font-medium max-w-[200px]">
                 Tap the scan button below to classify your first item!
               </p>
             </div>
@@ -351,37 +528,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
 
       </div>
-
-      {/* ── BOTTOM NAVIGATION ──────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-xl z-20">
-        <div className="flex items-end justify-around px-2 pt-2 pb-3">
-          {navItems.map((item) => {
-            if (item.page === null) {
-              return (
-                <div key="scan" className="flex flex-col items-center -mt-6">
-                  <button onClick={onScanClick}
-                    className="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 active:scale-95 flex items-center justify-center shadow-lg shadow-green-200 transition-all"
-                    aria-label="Scan waste">
-                    <IconScanNav size={28} color="white" />
-                  </button>
-                  <span className="text-green-600 text-xs font-bold mt-1.5">Scan</span>
-                </div>
-              );
-            }
-            const isActive = currentPage === item.page;
-            return (
-              <button key={item.page} onClick={() => item.page && onNavigate(item.page)}
-                className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all">
-                {item.icon(isActive)}
-                <span className={`text-xs font-semibold transition-colors ${isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
     </div>
   );
 };
