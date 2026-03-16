@@ -333,3 +333,20 @@ export const EcoScanBrandIcon: React.FC<IconProps> = ({ size = 32, color = 'whit
     </>,
     size, color, className
   );
+
+// ─── ALIASES & SPECIALTY ICONS ───────────────────────────────
+
+export const IconBiodegradable: React.FC<IconProps>    = IconOrganic;
+export const IconNonBiodegradable: React.FC<IconProps> = IconRecycling;
+export const IconSpecial: React.FC<IconProps>          = IconSpecialWaste;
+
+export const IconResidual: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) =>
+  base(
+    <>
+      <path d="M3 6H21" stroke={color} />
+      <path d="M8 6V4H16V6" stroke={color} />
+      <path d="M19 6L18 20H6L5 6" stroke={color} />
+      <path d="M10 11V16M14 11V16" stroke={color} />
+    </>,
+    size, color, className
+  );

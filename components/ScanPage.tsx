@@ -121,6 +121,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     if (step !== 'camera' || imagePreview) { stopCamera(); return; }
 
     const startCamera = async () => {
@@ -129,24 +130,37 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       setError(null);
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (!mounted) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
         streamRef.current = stream;
         if (videoRef.current) { videoRef.current.srcObject = stream; setIsCameraReady(true); }
       } catch {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (!mounted) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
           streamRef.current = stream;
           if (videoRef.current) { videoRef.current.srcObject = stream; setIsCameraReady(true); }
         } catch {
-          setError('Could not access camera. Please ensure permissions are granted.');
-          setCameraBlocked(true);
+          if (mounted) {
+            setError('Could not access camera. Please ensure permissions are granted.');
+            setCameraBlocked(true);
+          }
         }
       } finally {
-        setIsCameraInitializing(false);
+        if (mounted) setIsCameraInitializing(false);
       }
     };
 
     startCamera();
-    return () => stopCamera();
+    return () => {
+      mounted = false;
+      stopCamera();
+    };
   }, [step, imagePreview, stopCamera]);
 
   // ── Auto-redirect after result ────────────────────────────

@@ -125,7 +125,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
         {/* Settings icon */}
         <button
           onClick={() => onNavigate(Page.APP_SETTINGS)}
-          className="absolute top-12 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 z-10"
+          className="absolute top-12 right-6 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 z-20"
         >
           <IconSettings size={20} color="currentColor" />
         </button>
