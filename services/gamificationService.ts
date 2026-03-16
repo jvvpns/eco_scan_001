@@ -1,4 +1,11 @@
-import { getUserStats, updateUserStats, updateLeaderboardEntry, unlockBadge, updateMissionProgress } from './firestoreService';
+import {
+  getUserStats,
+  updateUserStats,
+  updateLeaderboardEntry,
+  unlockBadge,
+  updateMissionProgress,
+  getUserMissions
+} from './firestoreService';
 import { UserStats } from '../types';
 
 // ─── CONSTANTS ────────────────────────────────────────────────
@@ -127,14 +134,19 @@ export const processScanResult = async (
   newlyUnlockedBadges: string[];
   completedMissions: string[];
 }> => {
-  const currentStats = await getUserStats(userId);
+  // 1. Get current data
+  const [currentStats, existingMissions] = await Promise.all([
+    getUserStats(userId),
+    getUserMissions(userId)
+  ]);
+  
   if (!currentStats) throw new Error('User stats not found');
 
   const today = getTodayString();
   const yesterday = getYesterdayString();
-  const pointsEarned = isCorrect ? POINTS_PER_CORRECT_SCAN : POINTS_PER_WRONG_SCAN;
+  const scanPoints = isCorrect ? POINTS_PER_CORRECT_SCAN : POINTS_PER_WRONG_SCAN;
 
-  // ── Streak ──
+  // 2. Streak logic
   let newStreak = currentStats.streak;
   if (isCorrect) {
     newStreak = (
@@ -145,42 +157,74 @@ export const processScanResult = async (
     newStreak = 0;
   }
 
-  // ── Points & level ──
-  const newPoints      = currentStats.ecoPoints + pointsEarned;
-  const newLevel       = calculateLevel(newPoints);
-  const newTotalScans  = currentStats.totalScans + 1;
+  // 3. Increment base counts
+  const newTotalScans = currentStats.totalScans + 1;
   const newCorrectScans = currentStats.correctScans + (isCorrect ? 1 : 0);
-  const impact         = calculateEnvironmentalImpact(newTotalScans, newPoints);
+
+  // 4. Temporary stats for mission progress calculation
+  const tempStats: UserStats = {
+    ...currentStats,
+    streak: newStreak,
+    totalScans: newTotalScans,
+    correctScans: newCorrectScans,
+  };
+
+  // 5. Check Mission transitions
+  const completedMissions: string[] = [];
+  let missionBonusPoints = 0;
+
+  for (const mission of MISSIONS) {
+    const prevRecord = existingMissions.find(m => m.id === mission.id);
+    const wasCompleted = prevRecord?.completed ?? false;
+    
+    const currentProgress = mission.getProgress(tempStats);
+    const isNowCompleted = currentProgress >= mission.target;
+
+    // Transition: not completed -> completed!
+    if (!wasCompleted && isNowCompleted) {
+      missionBonusPoints += mission.points;
+      completedMissions.push(mission.id);
+    }
+
+    // Update mission record in Firestore
+    await updateMissionProgress(userId, mission.id, currentProgress, isNowCompleted);
+  }
+
+  // 6. Calculate Final Totals
+  const totalPointsEarned = scanPoints + missionBonusPoints;
+  const finalPoints = currentStats.ecoPoints + totalPointsEarned;
+  const finalLevel = calculateLevel(finalPoints);
+  const impact = calculateEnvironmentalImpact(newTotalScans, finalPoints);
 
   const updatedStats: UserStats = {
     ...currentStats,
-    ecoPoints:       newPoints,
-    level:           newLevel,
-    streak:          newStreak,
-    lastScanDate:    today,
-    totalScans:      newTotalScans,
-    correctScans:    newCorrectScans,
+    ecoPoints: finalPoints,
+    level: finalLevel,
+    streak: newStreak,
+    lastScanDate: today,
+    totalScans: newTotalScans,
+    correctScans: newCorrectScans,
     itemsClassified: newTotalScans,
-    co2Saved:        impact.co2Saved,
-    wasteDiverted:   impact.wasteDiverted,
-    treesSaved:      impact.treesSaved,
+    co2Saved: impact.co2Saved,
+    wasteDiverted: impact.wasteDiverted,
+    treesSaved: impact.treesSaved,
   };
 
-  // ── Save stats ──
+  // 7. Save Final Stats
   await updateUserStats(userId, updatedStats);
 
-  // ── Sync leaderboard — include username & avatarUrl ──
+  // 8. Sync Leaderboard
   await updateLeaderboardEntry(userId, {
     displayName: updatedStats.displayName,
-    username:    updatedStats.username   ?? '',
-    avatarUrl:   updatedStats.avatarUrl  ?? '',
-    ecoPoints:   updatedStats.ecoPoints,
-    level:       updatedStats.level,
+    username: updatedStats.username ?? '',
+    avatarUrl: updatedStats.avatarUrl ?? '',
+    ecoPoints: updatedStats.ecoPoints,
+    level: updatedStats.level,
     correctScans: updatedStats.correctScans,
-    totalScans:  updatedStats.totalScans,
+    totalScans: updatedStats.totalScans,
   });
 
-  // ── Badge unlocks ──
+  // 9. Badge logic
   const newlyUnlockedBadges: string[] = [];
   for (const badge of BADGES) {
     if (!unlockedBadgeIds.includes(badge.id) && badge.check(updatedStats)) {
@@ -189,14 +233,10 @@ export const processScanResult = async (
     }
   }
 
-  // ── Mission progress ──
-  const completedMissions: string[] = [];
-  for (const mission of MISSIONS) {
-    const progress  = mission.getProgress(updatedStats);
-    const completed = progress >= mission.target;
-    await updateMissionProgress(userId, mission.id, progress, completed);
-    if (completed) completedMissions.push(mission.id);
-  }
-
-  return { updatedStats, pointsEarned, newlyUnlockedBadges, completedMissions };
+  return { 
+    updatedStats, 
+    pointsEarned: totalPointsEarned, 
+    newlyUnlockedBadges, 
+    completedMissions 
+  };
 };
