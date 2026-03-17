@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScanRecord, Page } from '../types';
+import { ScanRecord, Page, Notification } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { getRecentScans, deleteScanRecord, deductScanPoints } from '../services/firestoreService';
+import { getNotifications, clearAllNotifications, markAsRead, addNotification, checkStreakReminderNeeded } from '../services/notificationService';
 import { useToast, ToastContainer } from './Toast';
 import {
   IconHome, IconMissions, IconLeaderboard, IconProfile,
   IconScanNav, IconNotifications, IconRecycling, IconOrganic,
   IconEcoPoints, IconStreak, IconScan, IconDeleteScan,
-  PilotBrandIcon,
+  PilotBrandIcon, IconInfo, IconClose, IconFlame,
+  IconTarget, IconTrophy, IconAlert, IconChecklist,
+  IconCo2, IconWeight, IconTree, IconSpecialWaste, IconResidual
 } from './Icons';
 
 // ─── PROPS ────────────────────────────────────────────────────
@@ -41,22 +44,71 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 // ─── SUB COMPONENTS ───────────────────────────────────────────
 
-const StatCard: React.FC<{ label: string; value: string | number; color: string; emoji: string }> = ({ label, value, color, emoji }) => (
+const StatCard: React.FC<{ label: string; value: string | number; color: string; icon: React.ReactNode }> = ({ label, value, color, icon }) => (
   <div className={`flex-1 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 ${color}`}>
-    <span className="text-xl">{emoji}</span>
+    <div className="text-white mb-1">
+      {icon}
+    </div>
     <span className="text-white font-black text-xl leading-none">{value}</span>
-    <span className="text-white/80 text-xs font-medium">{label}</span>
+    <span className="text-white/80 text-[10px] uppercase font-black tracking-wider mt-0.5">{label}</span>
   </div>
 );
 
-const ImpactCard: React.FC<{ label: string; value: string | number; unit: string; emoji: string; bg: string }> = ({ label, value, unit, emoji, bg }) => (
-  <div className={`flex-1 rounded-2xl p-3 flex flex-col items-center gap-1 ${bg}`}>
-    <span className="text-2xl">{emoji}</span>
-    <div className="text-center">
-      <p className="font-black text-gray-800 text-lg leading-none">{value}</p>
-      <p className="text-gray-500 text-xs">{unit}</p>
+const ImpactCard: React.FC<{ label: string; value: string | number; unit: string; icon: React.ReactNode; bg: string; iconBg: string }> = ({ label, value, unit, icon, bg, iconBg }) => (
+  <div className={`flex-1 rounded-[1.25rem] p-4 flex flex-col gap-3 ${bg} border border-white shadow-sm`}>
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} shadow-sm`}>
+      {icon}
     </div>
-    <p className="text-gray-600 text-xs font-semibold text-center leading-tight">{label}</p>
+    <div>
+      <div className="flex items-baseline gap-1">
+        <span className="font-black text-gray-900 text-xl leading-none">{value}</span>
+        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">{unit}</span>
+      </div>
+      <p className="text-gray-500 text-[11px] font-bold mt-1 uppercase tracking-tight">{label}</p>
+    </div>
+  </div>
+);
+
+const EnvironmentalImpactSection: React.FC<{ stats: any }> = ({ stats }) => (
+  <div className="space-y-3">
+    <div className="flex items-center justify-between">
+      <p className="text-gray-900 font-bold text-lg tracking-tight">Environmental Impact</p>
+      <div className="h-px flex-1 bg-gray-100 ml-4 opacity-50" />
+    </div>
+    <div className="grid grid-cols-2 gap-3">
+      <ImpactCard 
+        label="Items Sorted" 
+        value={stats.itemsClassified} 
+        unit="items" 
+        icon={<IconChecklist size={20} color="#3b82f6" />} 
+        bg="bg-blue-50/30"
+        iconBg="bg-blue-100/50"
+      />
+      <ImpactCard 
+        label="CO₂ Saved" 
+        value={stats.co2Saved} 
+        unit="kg" 
+        icon={<IconCo2 size={20} color="#10b981" />} 
+        bg="bg-emerald-50/30"
+        iconBg="bg-emerald-100/50"
+      />
+      <ImpactCard 
+        label="Waste Diverted" 
+        value={stats.wasteDiverted} 
+        unit="kg" 
+        icon={<IconWeight size={20} color="#06b6d4" />} 
+        bg="bg-cyan-50/30"
+        iconBg="bg-cyan-100/50"
+      />
+      <ImpactCard 
+        label="Trees Saved" 
+        value={stats.treesSaved} 
+        unit="trees" 
+        icon={<IconTree size={20} color="#15803d" />} 
+        bg="bg-green-50/30"
+        iconBg="bg-green-100/50"
+      />
+    </div>
   </div>
 );
 
@@ -109,13 +161,7 @@ const WASTE_TYPES_DATA = [
     examples: ['Food scraps', 'Fruit peels', 'Vegetable waste', 'Leaves & garden waste'],
     tip: 'Can be composted or placed in biodegradable waste bins.',
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-        stroke={active ? 'white' : '#15803d'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3C12 3 7 7 7 13C7 16.3 9.2 19 12 19C14.8 19 17 16.3 17 13C17 7 12 3 12 3Z" />
-        <path d="M12 19V22" />
-        <path d="M9 21H15" />
-        <path d="M12 10C12 10 9.5 12 9.5 14" strokeWidth="1.5" />
-      </svg>
+      <IconOrganic size={22} color={active ? 'white' : '#15803d'} />
     ),
   },
   {
@@ -129,12 +175,7 @@ const WASTE_TYPES_DATA = [
     examples: ['Plastic bottles', 'Glass containers', 'Metal cans', 'Styrofoam'],
     tip: 'Separate and recycle when possible.',
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-        stroke={active ? 'white' : '#c2410c'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3L8.5 8H11V13H13V8H15.5L12 3Z" />
-        <path d="M5.5 10.5L3.5 15H6.5L8 19H11L9 15H12L9.5 10.5H5.5Z" />
-        <path d="M18.5 10.5L20.5 15H17.5L16 19H13L15 15H12L14.5 10.5H18.5Z" />
-      </svg>
+      <IconRecycling size={22} color={active ? 'white' : '#c2410c'} />
     ),
   },
   {
@@ -148,13 +189,7 @@ const WASTE_TYPES_DATA = [
     examples: ['Contaminated packaging', 'Used tissues', 'Disposable hygiene products'],
     tip: 'Dispose properly in residual waste bins.',
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-        stroke={active ? 'white' : '#374151'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 6H21" />
-        <path d="M8 6V4H16V6" />
-        <path d="M19 6L18 20H6L5 6" />
-        <path d="M10 11V16M14 11V16" />
-      </svg>
+      <IconResidual size={22} color={active ? 'white' : '#374151'} />
     ),
   },
   {
@@ -168,12 +203,7 @@ const WASTE_TYPES_DATA = [
     examples: ['Batteries', 'Electronics', 'Light bulbs', 'Chemicals'],
     tip: 'Bring to designated special waste collection points.',
     icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-        stroke={active ? 'white' : '#b91c1c'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3L22 8.5V15.5L12 21L2 15.5V8.5L12 3Z" />
-        <path d="M12 8V12" />
-        <circle cx="12" cy="15" r="1" fill={active ? 'white' : '#b91c1c'} stroke={active ? 'white' : '#b91c1c'} />
-      </svg>
+      <IconSpecialWaste size={22} color={active ? 'white' : '#b91c1c'} />
     ),
   },
 ];
@@ -319,6 +349,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   const { userStats, loading, user, refreshStats } = useAuth();
   const { toasts, showToast, dismissToast } = useToast();
   const [showScansOverlay, setShowScansOverlay] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [hasUnread, setHasUnread] = useState(false);
   
   // ── Dynamic Greeting Logic ────────────────────────────────
   const getGreeting = () => {
@@ -358,10 +391,43 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     }
   }, [user]);
 
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const data = await getNotifications(user.uid);
+      setNotifications(data);
+      setHasUnread(data.some(n => !n.read));
+    } catch (e) {
+      console.error('Failed to fetch notifications:', e);
+    }
+  }, [user]);
+
+  const checkStreakReminder = useCallback(async () => {
+    if (!user || !userStats) return;
+    try {
+      const needed = await checkStreakReminderNeeded(user.uid, userStats.lastScanDate);
+      if (needed) {
+        await addNotification(user.uid, "Don't forget to scan today to keep your streak alive!", 'streak');
+        fetchNotifications();
+      }
+    } catch (e) {
+      console.error('Failed to check streak reminder:', e);
+    }
+  }, [user, userStats, fetchNotifications]);
+
   // Fetch on mount and whenever a new scan completes (refreshTrigger bumped)
   useEffect(() => {
-    fetchRecentScans();
-  }, [fetchRecentScans, refreshTrigger]);
+    if (user) {
+      fetchRecentScans();
+      fetchNotifications();
+    }
+  }, [user, fetchRecentScans, fetchNotifications, refreshTrigger]);
+
+  useEffect(() => {
+    if (userStats) {
+      checkStreakReminder();
+    }
+  }, [userStats, checkStreakReminder]);
 
   // ── Delete scan ───────────────────────────────────────────
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -383,6 +449,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
       fetchRecentScans();
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleMarkRead = async (notificationId: string) => {
+    if (!user) return;
+    try {
+      await markAsRead(user.uid, notificationId);
+      fetchNotifications(); // Re-fetch to update UI
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e);
+      showToast('Failed to mark notification as read.', 'error');
+    }
+  };
+
+  const handleClearNotifications = async () => {
+    if (!user) return;
+    try {
+      await clearAllNotifications(user.uid);
+      fetchNotifications(); // Re-fetch to update UI
+      showToast('All notifications cleared.', 'success');
+    } catch (e) {
+      console.error('Failed to clear notifications:', e);
+      showToast('Failed to clear notifications.', 'error');
     }
   };
 
@@ -414,25 +503,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
               {user?.displayName ? user.displayName.split(' ')[0] : 'Eco Warrior'} 👋
             </h1>
           </div>
-          <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 shadow-sm">
+          <button 
+            onClick={() => setShowNotifications(true)}
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/30 active:scale-95 transition-all border border-white/20 shadow-sm relative"
+          >
             <IconNotifications size={20} color="currentColor" />
+            {hasUnread && (
+              <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
+            )}
           </button>
         </div>
 
-        {/* Search / Action bar overlapping inside header */}
-        <div className="relative z-10 mt-6">
-          <div className="flex items-center bg-white rounded-2xl px-4 py-3.5 shadow-lg shadow-green-900/10 mb-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Search waste item..." 
-              className="flex-1 bg-transparent border-none outline-none ml-3 text-sm text-gray-800 placeholder-gray-400 font-medium"
-            />
-          </div>
-        </div>
       </div>
 
       {/* ── SCROLLABLE CONTENT ─────────────────────────────── */}
@@ -447,12 +528,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <><StatSkeleton /><StatSkeleton /><StatSkeleton /></>
           ) : (
             <>
-              <StatCard label="EcoPoints" value={stats.ecoPoints}     color="bg-gradient-to-br from-green-500 to-green-600 shadow-md shadow-green-200/50"  emoji="🌿" />
-              <StatCard label="Level"     value={stats.level}         color="bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-200/50"   emoji="⭐" />
-              <StatCard label="Streak"    value={`${stats.streak}🔥`} color="bg-gradient-to-br from-orange-400 to-orange-500 shadow-md shadow-orange-200/50" emoji=""   />
+              <StatCard label="EcoPoints" value={stats.ecoPoints}     color="bg-gradient-to-br from-green-500 to-green-600 shadow-md shadow-green-200/50"  icon={<IconEcoPoints size={20} color="white" />} />
+              <StatCard label="Level"     value={stats.level}         color="bg-gradient-to-br from-blue-500 to-blue-600 shadow-md shadow-blue-200/50"   icon={<IconLeaderboard size={20} color="white" />} />
+              <StatCard label="Streak"    value={`${stats.streak}/3`} color="bg-gradient-to-br from-orange-400 to-orange-500 shadow-md shadow-orange-200/50" icon={<IconStreak size={20} color="white" />}   />
             </>
           )}
         </div>
+
+        {/* ENVIRONMENTAL IMPACT SECTION */}
+        <EnvironmentalImpactSection stats={stats} />
 
         {/* DAILY ECO TIP */}
         {!tipDismissed && (
@@ -613,11 +697,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                           </p>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className={`font-black text-lg leading-none ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
-                          {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
-                        </p>
-                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mt-1">{scan.isCorrect ? 'pts' : 'missed'}</p>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0 pr-1">
+                        <div className="text-right">
+                          <p className={`font-black text-lg leading-none ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
+                            {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
+                          </p>
+                          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mt-1">{scan.isCorrect ? 'pts' : 'missed'}</p>
+                        </div>
+                        
+                        {/* Delete button (matching recent scans) */}
+                        <button
+                          onClick={() => handleDeleteScan(scan)}
+                          disabled={!!deletingId}
+                          className="w-7 h-7 rounded-lg bg-gray-50 hover:bg-red-50 flex items-center justify-center text-gray-400 hover:text-red-500 active:scale-90 transition-all disabled:opacity-30"
+                          aria-label="Delete scan history item"
+                        >
+                          {deletingId === scan.id ? (
+                            <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                            </svg>
+                          ) : (
+                            <IconDeleteScan size={14} />
+                          )}
+                        </button>
                       </div>
                     </div>
                   );
@@ -638,6 +740,100 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 Close History
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── NOTIFICATION OVERLAY ─────────────────────────────────── */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowNotifications(false)}
+          />
+          
+          <div className="relative w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-slide-up">
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-gray-50 bg-gray-50/50">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight">Notifications</h2>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Stay updated with your progress</p>
+              </div>
+              <button 
+                onClick={() => setShowNotifications(false)}
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100 text-gray-400 hover:text-gray-600 active:scale-90 transition-all"
+              >
+                <IconClose size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {notifications.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center px-6">
+                  <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+                    <IconNotifications size={32} color="#d1d5db" />
+                  </div>
+                  <p className="font-bold text-gray-900">All caught up!</p>
+                  <p className="text-sm text-gray-400 mt-1">No new notifications at the moment.</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div 
+                    key={n.id}
+                    onClick={() => !n.read && handleMarkRead(n.id)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                      n.read 
+                        ? 'bg-white border-gray-100 opacity-60' 
+                        : 'bg-green-50/40 border-green-100 shadow-sm'
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        n.type === 'streak' ? 'bg-orange-100' :
+                        n.type === 'mission' ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        {n.type === 'streak' ? (
+                          <IconFlame size={20} color="#f97316" />
+                        ) : n.type === 'mission' ? (
+                          n.message.toLowerCase().includes('accuracy') ? (
+                            <IconTarget size={20} color="#3b82f6" />
+                          ) : (
+                            <IconTrophy size={20} color="#eab308" />
+                          )
+                        ) : (
+                          <IconAlert size={20} color="#10b981" />
+                        )}
+                      </div>
+                      <div className="flex-1 pt-0.5">
+                        <p className={`text-sm tracking-tight ${n.read ? 'text-gray-600' : 'text-gray-900 font-bold'}`}>
+                          {n.message}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1.5 opacity-80">
+                           {n.timestamp?.toDate ? n.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                        </p>
+                      </div>
+                      {!n.read && (
+                        <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="p-4 bg-gray-50/50 border-t border-gray-50">
+                <button 
+                  onClick={handleClearNotifications}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-gray-200 rounded-2xl text-red-500 font-bold text-sm hover:bg-red-50 active:scale-95 transition-all shadow-sm"
+                >
+                  <IconDeleteScan size={16} color="#ef4444" />
+                  Clear All Notifications
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

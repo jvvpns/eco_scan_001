@@ -47,6 +47,9 @@ export const initUserStats = async (
     wasteDiverted: 0,
     treesSaved: 0,
     createdAt: new Date().toISOString(),
+    accuracyChallengeScans: 0,
+    accuracyChallengeCorrect: 0,
+    scanMasterGoal: 20,
   };
   await setDoc(ref, initialStats);
 };
@@ -132,6 +135,9 @@ export const deductScanPoints = async (
     co2Saved:        newCo2,
     wasteDiverted:   newWaste,
     treesSaved:      newTrees,
+    accuracyChallengeScans: Math.max(0, (current.accuracyChallengeScans || 0) - 1),
+    accuracyChallengeCorrect: Math.max(0, (current.accuracyChallengeCorrect || 0) - (wasCorrect ? 1 : 0)),
+    scanMasterGoal: current.scanMasterGoal || 20,
   };
 
   await updateUserStats(userId, updates);

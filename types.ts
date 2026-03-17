@@ -40,6 +40,18 @@ export interface UserStats {
   wasteDiverted: number;     // kg
   treesSaved: number;
   createdAt: string;
+  accuracyChallengeScans: number;    // Tracks current block (0-8)
+  accuracyChallengeCorrect: number;  // Tracks correct scans in current block
+  scanMasterGoal: number;            // Current goal for Scan Master (e.g., 20, 50, 100)
+  lastCountedDate: string;           // YYYY-MM-DD for streak counting
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: 'streak' | 'mission' | 'system';
+  timestamp: any;
+  read: boolean;
 }
 
 export interface ScanRecord {

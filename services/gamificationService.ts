@@ -6,13 +6,19 @@ import {
   updateMissionProgress,
   getUserMissions
 } from './firestoreService';
-import { UserStats } from '../types';
+import { addNotification } from './notificationService';
+import { UserStats, GarbageType } from '../types';
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 
-const POINTS_PER_CORRECT_SCAN = 10;
-const POINTS_PER_WRONG_SCAN = 0;
 const POINTS_PER_LEVEL = 100;
+
+export const WASTE_POINTS: Record<string, number> = {
+  [GarbageType.SPECIAL]: 15,
+  [GarbageType.NON_BIODEGRADABLE]: 12,
+  [GarbageType.BIODEGRADABLE]: 10,
+  [GarbageType.RESIDUAL]: 5,
+};
 
 const CO2_PER_SCAN_KG = 0.05;
 const WASTE_PER_SCAN_KG = 0.02;
@@ -74,34 +80,33 @@ export const MISSIONS = [
   {
     id: 'daily_streak',
     name: 'Daily Streak',
-    description: 'Get 3 correct answers in a row',
+    description: 'Scan at least once per day for 3 consecutive days',
     icon: '🔥',
     target: 3,
     points: 50,
-    getProgress: (stats: UserStats) => Math.min(stats.streak, 3),
+    getProgress: (stats: UserStats) => stats.streak,
   },
   {
     id: 'accuracy_challenge',
     name: 'Accuracy Challenge',
-    description: 'Achieve 75% accuracy in 8 scans',
+    description: 'Maintain 75% accuracy over 8 scans',
     icon: '🎯',
-    target: 75,
+    target: 8,
     points: 100,
-    getProgress: (stats: UserStats) => {
-      if (stats.totalScans === 0) return 0;
-      return Math.round((stats.correctScans / stats.totalScans) * 100);
-    },
+    getProgress: (stats: UserStats) => stats.accuracyChallengeScans ?? 0,
   },
   {
     id: 'scan_master',
     name: 'Scan Master',
-    description: 'Complete 20 item scans',
+    description: 'Reach your scanning milestone',
     icon: '📊',
-    target: 20,
-    points: 150,
-    getProgress: (stats: UserStats) => Math.min(stats.totalScans, 20),
+    target: 20, // Initial target
+    points: 100,
+    getProgress: (stats: UserStats) => stats.correctScans,
   },
 ];
+
+const SCAN_MASTER_GOALS = [20, 50, 100, 250, 500, 1000];
 
 // ─── HELPERS ──────────────────────────────────────────────────
 
@@ -127,7 +132,8 @@ const getYesterdayString = (): string => {
 export const processScanResult = async (
   userId: string,
   isCorrect: boolean,
-  unlockedBadgeIds: string[]
+  unlockedBadgeIds: string[],
+  wasteType?: string
 ): Promise<{
   updatedStats: UserStats;
   pointsEarned: number;
@@ -144,46 +150,105 @@ export const processScanResult = async (
 
   const today = getTodayString();
   const yesterday = getYesterdayString();
-  const scanPoints = isCorrect ? POINTS_PER_CORRECT_SCAN : POINTS_PER_WRONG_SCAN;
+
+  // 1.5 Calculate Variable Points
+  const scanPoints = isCorrect && wasteType ? (WASTE_POINTS[wasteType] || 5) : 0;
 
   // 2. Streak logic
   let newStreak = currentStats.streak;
-  if (isCorrect) {
-    newStreak = (
-      currentStats.lastScanDate === today ||
-      currentStats.lastScanDate === yesterday
-    ) ? currentStats.streak + 1 : 1;
-  } else {
-    newStreak = 0;
+  let newLastCountedDate = currentStats.lastCountedDate ?? '';
+  
+  if (newLastCountedDate !== today) {
+    if (newLastCountedDate === yesterday) {
+      newStreak += 1;
+    } else {
+      newStreak = 1;
+    }
+    newLastCountedDate = today;
   }
 
   // 3. Increment base counts
   const newTotalScans = currentStats.totalScans + 1;
   const newCorrectScans = currentStats.correctScans + (isCorrect ? 1 : 0);
 
-  // 4. Temporary stats for mission progress calculation
+  // 4. Update Accuracy Challenge counters
+  let newAccScans = (currentStats.accuracyChallengeScans || 0) + 1;
+  let newAccCorrect = (currentStats.accuracyChallengeCorrect || 0) + (isCorrect ? 1 : 0);
+
+  // 5. Temporary stats for mission progress calculation
   const tempStats: UserStats = {
     ...currentStats,
     streak: newStreak,
     totalScans: newTotalScans,
     correctScans: newCorrectScans,
+    accuracyChallengeScans: newAccScans,
+    accuracyChallengeCorrect: newAccCorrect,
   };
 
   // 5. Check Mission transitions
   const completedMissions: string[] = [];
   let missionBonusPoints = 0;
 
+  let newScanMasterGoal = currentStats.scanMasterGoal || 20;
+
   for (const mission of MISSIONS) {
     const prevRecord = existingMissions.find(m => m.id === mission.id);
     const wasCompleted = prevRecord?.completed ?? false;
     
-    const currentProgress = mission.getProgress(tempStats);
-    const isNowCompleted = currentProgress >= mission.target;
+    // Skip if already completed (except Scan Master which is progressive)
+    if (wasCompleted && mission.id !== 'scan_master') continue;
 
-    // Transition: not completed -> completed!
-    if (!wasCompleted && isNowCompleted) {
-      missionBonusPoints += mission.points;
-      completedMissions.push(mission.id);
+    let target = mission.target;
+    if (mission.id === 'scan_master') target = newScanMasterGoal;
+
+    const currentProgress = mission.getProgress(tempStats);
+    let isNowCompleted = false;
+
+    // Special logic for Accuracy Challenge completion
+    if (mission.id === 'accuracy_challenge') {
+      if (currentProgress === 8) {
+        const accuracy = (tempStats.accuracyChallengeCorrect / 8) * 100;
+        if (accuracy >= 75) {
+          isNowCompleted = true;
+          missionBonusPoints += mission.points;
+          completedMissions.push(mission.id);
+          await addNotification(userId, "Accuracy Challenge Completed! You earned 100 points!", 'mission');
+        } else {
+          await addNotification(userId, "Challenge failed. You did not reach 75% accuracy.", 'mission');
+        }
+        // RESET counters after 8 scans regardless of pass/fail
+        newAccScans = 0;
+        newAccCorrect = 0;
+      } else {
+        await addNotification(userId, `Accuracy Challenge: ${currentProgress}/8 scans completed`, 'mission');
+      }
+    } else if (mission.id === 'scan_master') {
+      // Scan Master logic
+      if (currentProgress >= target) {
+        const alreadyAwarded = prevRecord?.progress === target && prevRecord?.completed;
+        if (!alreadyAwarded) {
+          isNowCompleted = true;
+          missionBonusPoints += mission.points;
+          completedMissions.push(mission.id);
+          await addNotification(userId, `Scan Master milestone reached! +${mission.points} points`, 'mission');
+          
+          // Move to next goal
+          const currentIndex = SCAN_MASTER_GOALS.indexOf(target);
+          if (currentIndex !== -1 && currentIndex < SCAN_MASTER_GOALS.length - 1) {
+            newScanMasterGoal = SCAN_MASTER_GOALS[currentIndex + 1];
+          }
+        }
+      }
+    } else {
+      isNowCompleted = currentProgress >= target;
+      if (isNowCompleted) {
+        missionBonusPoints += mission.points;
+        completedMissions.push(mission.id);
+        if (mission.id === 'daily_streak') {
+            await addNotification(userId, "Daily Streak Completed! You earned 50 points!", 'streak');
+            newStreak = 0;
+        }
+      }
     }
 
     // Update mission record in Firestore
@@ -208,6 +273,10 @@ export const processScanResult = async (
     co2Saved: impact.co2Saved,
     wasteDiverted: impact.wasteDiverted,
     treesSaved: impact.treesSaved,
+    accuracyChallengeScans: newAccScans,
+    accuracyChallengeCorrect: newAccCorrect,
+    scanMasterGoal: newScanMasterGoal,
+    lastCountedDate: newLastCountedDate,
   };
 
   // 7. Save Final Stats

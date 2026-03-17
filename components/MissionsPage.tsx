@@ -8,6 +8,7 @@ import { useToast, ToastContainer } from './Toast';
 import {
   IconHome, IconMissions, IconLeaderboard, IconProfile, IconScanNav,
   IconEcoPoints, IconBadge, IconRecycling, IconStreak,
+  IconFlame, IconTarget, IconTrophy, IconAlert, IconRefresh
 } from './Icons';
 
 // ─── TYPES ────────────────────────────────────────────────────
@@ -49,22 +50,56 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
     </div>
     {MISSIONS.map(mission => {
       const record = userMissions.find(m => m.id === mission.id);
+      const isAccuracyChallenge = mission.id === 'accuracy_challenge';
+      const currentTarget = (mission.id === 'scan_master' && userStats?.scanMasterGoal) 
+        ? userStats.scanMasterGoal 
+        : mission.target;
+
       const liveProgress = userStats ? mission.getProgress(userStats) : (record?.progress ?? 0);
-      const liveCompleted = liveProgress >= mission.target;
-      const pct = Math.min((liveProgress / mission.target) * 100, 100);
+      const liveCompleted = record?.completed ?? (liveProgress >= currentTarget);
+      const pct = Math.min((liveProgress / currentTarget) * 100, 100);
+
+      // Accuracy calculation for UI
+      const accuracy = isAccuracyChallenge
+        ? (userStats?.accuracyChallengeScans > 0 
+           ? Math.round((userStats.accuracyChallengeCorrect / userStats.accuracyChallengeScans) * 100)
+           : 0)
+        : 0;
+
+      let statusLabel = liveCompleted ? 'Completed' : 'In Progress';
+      if (isAccuracyChallenge && !liveCompleted && record?.progress === 8) {
+        statusLabel = 'Failed (Try Again)';
+      }
 
       return (
         <div key={mission.id} className={`bg-white rounded-[1.25rem] p-4 shadow-sm border transition-colors ${liveCompleted ? 'border-green-200/80 bg-gradient-to-br from-green-50 to-emerald-50/50' : 'border-gray-100'
           }`}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3.5 flex-1">
-              <div className={`w-12 h-12 rounded-[0.875rem] flex items-center justify-center text-2xl shrink-0 shadow-sm ${liveCompleted ? 'bg-green-100 shadow-green-200/50' : 'bg-orange-50'
+              <div className={`w-12 h-12 rounded-[0.875rem] flex items-center justify-center shrink-0 shadow-sm ${liveCompleted ? 'bg-green-100 shadow-green-200/50' : 'bg-orange-50'
                 }`}>
-                {liveCompleted ? '✅' : mission.icon}
+                {mission.id === 'daily_streak' ? (
+                  <IconFlame size={24} />
+                ) : mission.id === 'accuracy_challenge' ? (
+                  <IconTarget size={24} />
+                ) : (
+                  <IconTrophy size={24} />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-black text-gray-900 text-sm tracking-tight">{mission.name}</p>
                 <p className="text-gray-400 text-xs font-medium mt-0.5">{mission.description}</p>
+                {isAccuracyChallenge && !liveCompleted && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Accuracy: {accuracy}%</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusLabel.includes('Failed') ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>{statusLabel}</span>
+                  </div>
+                )}
+                {mission.id === 'daily_streak' && !liveCompleted && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Daily Streak: {liveProgress} / 3 days</span>
+                  </div>
+                )}
               </div>
             </div>
             <div className="shrink-0 text-right">
@@ -74,9 +109,11 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
           </div>
           <div className="mt-3.5">
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Progress</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                {isAccuracyChallenge ? 'Scan Progress' : 'Progress'}
+              </span>
               <span className={`text-[10px] font-black ${liveCompleted ? 'text-green-600' : 'text-gray-500'}`}>
-                {Math.min(liveProgress, mission.target)} / {mission.target}
+                {isAccuracyChallenge ? `Scans: ${liveProgress} / ${currentTarget}` : `${Math.min(liveProgress, currentTarget)} / ${currentTarget}`}
               </span>
             </div>
             <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -177,9 +214,7 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
           className="w-9 h-9 rounded-full bg-green-50 hover:bg-green-100 flex items-center justify-center text-green-600 transition-all disabled:opacity-40 border border-green-100"
           aria-label="Refresh leaderboard"
         >
-          <svg viewBox="0 0 24 24" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <IconRefresh size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 

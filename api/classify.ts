@@ -21,6 +21,10 @@ interface UserStats {
   displayName: string;
   username: string;
   avatarUrl: string;
+  accuracyChallengeScans: number;
+  accuracyChallengeCorrect: number;
+  scanMasterGoal: number;
+  lastCountedDate: string;
 }
 
 interface MissionRecord {
@@ -54,25 +58,23 @@ const MISSIONS = [
     id: 'daily_streak',
     target: 3,
     points: 50,
-    getProgress: (stats: UserStats) => Math.min(stats.streak, 3),
+    getProgress: (stats: UserStats) => stats.streak,
   },
   {
     id: 'accuracy_challenge',
-    target: 75,
+    target: 8,
     points: 100,
-    getProgress: (stats: UserStats) => {
-      // Show actual accuracy even before 8 scans, but target check remains for completion
-      if (stats.totalScans === 0) return 0;
-      return Math.round((stats.correctScans / stats.totalScans) * 100);
-    },
+    getProgress: (stats: UserStats) => stats.accuracyChallengeScans ?? 0,
   },
   {
     id: 'scan_master',
-    target: 20,
-    points: 150,
-    getProgress: (stats: UserStats) => Math.min(stats.totalScans, 20),
+    target: 20, 
+    points: 100,
+    getProgress: (stats: UserStats) => stats.correctScans,
   },
 ];
+
+const SCAN_MASTER_GOALS = [20, 50, 100, 250, 500, 1000];
 
 // ─── BADGE DEFINITIONS (mirrors gamificationService.ts) ───────
 
@@ -260,14 +262,23 @@ When uncertain between two categories, choose the one that poses the greater env
   // ── 7. Compute updated stats (server-side, tamper-proof) ──
   const yesterday = getYesterdayString();
   let newStreak = currentStats.streak ?? 0;
-  if (isCorrect) {
-    newStreak = (lastScan === today || lastScan === yesterday) ? newStreak + 1 : 1;
-  } else {
-    newStreak = 0;
+  let newLastCountedDate = currentStats.lastCountedDate ?? '';
+  
+  if (newLastCountedDate !== today) {
+    if (newLastCountedDate === yesterday) {
+      newStreak += 1;
+    } else {
+      newStreak = 1;
+    }
+    newLastCountedDate = today;
   }
 
   const newTotalScans = (currentStats.totalScans ?? 0) + 1;
   const newCorrectScans = (currentStats.correctScans ?? 0) + (isCorrect ? 1 : 0);
+
+  // Update Accuracy Challenge counters
+  let newAccScans = (currentStats.accuracyChallengeScans || 0) + 1;
+  let newAccCorrect = (currentStats.accuracyChallengeCorrect || 0) + (isCorrect ? 1 : 0);
 
   // Temporary stats object for mission progress calculation
   const tempStats: UserStats = {
@@ -275,30 +286,109 @@ When uncertain between two categories, choose the one that poses the greater env
     streak: newStreak,
     totalScans: newTotalScans,
     correctScans: newCorrectScans,
+    accuracyChallengeScans: newAccScans,
+    accuracyChallengeCorrect: newAccCorrect,
+    lastCountedDate: newLastCountedDate,
   };
 
   // ── 8. Check missions ─────────────────────────────────────
   const missionsRef = db.collection(`users/${uid}/missions`);
+  const notificationsRef = db.collection(`users/${uid}/notifications`);
   const missionsSnap = await missionsRef.get();
   const existingMissions: MissionRecord[] = missionsSnap.docs.map(d => ({ id: d.id, ...d.data() } as MissionRecord));
 
   const completedMissions: string[] = [];
   let missionBonusPoints = 0;
-  const missionWrites: Promise<unknown>[] = [];
+  const dbWrites: Promise<unknown>[] = [];
+
+  let newScanMasterGoal = currentStats.scanMasterGoal || 20;
 
   for (const mission of MISSIONS) {
     const prev = existingMissions.find(m => m.id === mission.id);
     const wasCompleted = prev?.completed ?? false;
-    const currentProgress = mission.getProgress(tempStats);
-    const isNowCompleted = currentProgress >= mission.target;
+    
+    // Skip if already completed (except Scan Master which is progressive)
+    if (wasCompleted && mission.id !== 'scan_master') continue;
 
-    if (!wasCompleted && isNowCompleted) {
-      missionBonusPoints += mission.points;
-      completedMissions.push(mission.id);
+    let target = mission.target;
+    if (mission.id === 'scan_master') target = newScanMasterGoal;
+
+    const currentProgress = mission.getProgress(tempStats);
+    let isNowCompleted = false;
+
+    if (mission.id === 'accuracy_challenge') {
+      if (currentProgress === 8) {
+        const accuracy = (tempStats.accuracyChallengeCorrect / 8) * 100;
+        if (accuracy >= 75) {
+          isNowCompleted = true;
+          missionBonusPoints += mission.points;
+          completedMissions.push(mission.id);
+          dbWrites.push(notificationsRef.add({
+            message: "Accuracy Challenge Completed! You earned 100 points!",
+            type: 'mission',
+            timestamp: FieldValue.serverTimestamp(),
+            read: false
+          }));
+        } else {
+          dbWrites.push(notificationsRef.add({
+            message: "Challenge failed. You did not reach 75% accuracy.",
+            type: 'mission',
+            timestamp: FieldValue.serverTimestamp(),
+            read: false
+          }));
+        }
+        // RESET counters after 8 scans
+        newAccScans = 0;
+        newAccCorrect = 0;
+      } else {
+        // Trigger only on meaningful updates
+        dbWrites.push(notificationsRef.add({
+          message: `Accuracy Challenge: ${currentProgress}/8 scans completed`,
+          type: 'mission',
+          timestamp: FieldValue.serverTimestamp(),
+          read: false
+        }));
+      }
+    } else if (mission.id === 'scan_master') {
+      if (currentProgress >= target) {
+        const alreadyAwarded = prev?.progress === target && prev?.completed;
+        if (!alreadyAwarded) {
+          isNowCompleted = true;
+          missionBonusPoints += mission.points;
+          completedMissions.push(mission.id);
+          dbWrites.push(notificationsRef.add({
+            message: `Scan Master completed! +100 points`,
+            type: 'mission',
+            timestamp: FieldValue.serverTimestamp(),
+            read: false
+          }));
+
+          const currentIndex = SCAN_MASTER_GOALS.indexOf(target);
+          if (currentIndex !== -1 && currentIndex < SCAN_MASTER_GOALS.length - 1) {
+            newScanMasterGoal = SCAN_MASTER_GOALS[currentIndex + 1];
+          }
+        }
+      }
+    } else {
+      isNowCompleted = currentProgress >= target;
+      if (isNowCompleted) {
+        missionBonusPoints += mission.points;
+        completedMissions.push(mission.id);
+        if (mission.id === 'daily_streak') {
+          dbWrites.push(notificationsRef.add({
+            message: "Daily Streak Completed! You earned 50 points!",
+            type: 'streak',
+            timestamp: FieldValue.serverTimestamp(),
+            read: false
+          }));
+          // RESET streak immediately after completion
+          newStreak = 0;
+        }
+      }
     }
 
     const missionDoc = db.doc(`users/${uid}/missions/${mission.id}`);
-    missionWrites.push(
+    dbWrites.push(
       missionDoc.set(
         { progress: currentProgress, completed: isNowCompleted, ...(isNowCompleted ? { completedAt: new Date().toISOString() } : {}) },
         { merge: true }
@@ -327,6 +417,10 @@ When uncertain between two categories, choose the one that poses the greater env
     co2Saved,
     wasteDiverted,
     treesSaved,
+    accuracyChallengeScans: newAccScans,
+    accuracyChallengeCorrect: newAccCorrect,
+    scanMasterGoal: newScanMasterGoal,
+    lastCountedDate: newLastCountedDate,
   };
 
   // ── 11. Badge checks ──────────────────────────────────────
@@ -340,7 +434,7 @@ When uncertain between two categories, choose the one that poses the greater env
   for (const badge of BADGES) {
     if (!unlockedIds.has(badge.id) && badge.check(mergedStats as UserStats)) {
       newlyUnlockedBadges.push(badge.id);
-      badgeWrites.push(
+      dbWrites.push(
         db.doc(`users/${uid}/badges/${badge.id}`).set({ unlocked: true, unlockedAt: new Date().toISOString() })
       );
     }
@@ -377,8 +471,7 @@ When uncertain between two categories, choose the one that poses the greater env
     scanWrite,
     statsRef.update(updatedStats),
     leaderboardWrite,
-    ...missionWrites,
-    ...badgeWrites,
+    ...dbWrites,
   ]);
 
   // ── 15. Return sanitised result to frontend ───────────────

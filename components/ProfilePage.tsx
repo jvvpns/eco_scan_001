@@ -16,6 +16,7 @@ import {
   IconHome, IconMissions, IconLeaderboard, IconProfile, IconScanNav,
   IconEcoPoints, IconStreak, IconBadge, IconRecycling, IconOrganic,
   IconUploadAvatar, IconEditProfile, IconClose, IconScan, IconSettings,
+  IconChecklist, IconCo2, IconWeight, IconTree
 } from './Icons';
 
 const StatRow: React.FC<{ label: string; value: string | number; icon: React.ReactNode }> = ({ label, value, icon }) => (
@@ -201,11 +202,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
 
           {/* ── ENVIRONMENTAL IMPACT ───────────────────────────── */}
           <div className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-green-100">
-            <p className="text-gray-900 font-bold text-base mb-3 tracking-tight">Environmental Impact</p>
-            <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} icon={<IconScan     size={16} color="#3b82f6" />} />
-            <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}          icon={<IconOrganic  size={16} color="#16a34a" />} />
-            <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}      icon={<IconRecycling size={16} color="#06b6d4" />} />
-            <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}            icon={<IconOrganic  size={16} color="#15803d" />} />
+            <StatRow label="Items Classified" value={`${userStats?.itemsClassified ?? 0} items`} icon={<IconChecklist size={16} color="#3b82f6" />} />
+            <StatRow label="CO₂ Saved"        value={`${userStats?.co2Saved ?? 0} kg`}          icon={<IconCo2       size={16} color="#10b981" />} />
+            <StatRow label="Waste Diverted"   value={`${userStats?.wasteDiverted ?? 0} kg`}      icon={<IconWeight    size={16} color="#06b6d4" />} />
+            <StatRow label="Trees Saved"      value={`${userStats?.treesSaved ?? 0}`}            icon={<IconTree      size={16} color="#15803d" />} />
           </div>
 
           {/* ── BADGES ─────────────────────────────────────────── */}
