@@ -99,7 +99,11 @@ function App() {
   const timerRef                              = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // DIAGNOSTIC LOGGING
+    console.log('Firebase Project ID (Client):', (auth.app.options as any).projectId);
+    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Firebase Auth State Change:', user ? `User Logged In (UID: ${user.uid})` : 'User Logged Out');
       setFirebaseUser(user);
       setAuthLoading(false);
       const target = user ? Page.DASHBOARD : Page.LOGIN;
@@ -141,7 +145,7 @@ function App() {
       <div className="flex items-center justify-center min-h-screen bg-[#f0fdf4]">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-green-500" />
-          <p className="text-green-700 font-semibold text-sm">Loading EcoScan...</p>
+          <p className="text-green-700 font-semibold text-sm">Loading Pilot...</p>
         </div>
       </div>
     );

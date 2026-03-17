@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'EcoScan - Waste Classifier',
-        short_name: 'EcoScan',
+        name: 'Pilot - Waste Classifier',
+        short_name: 'Pilot',
         description: 'Learn, Play, and Save the Planet — AI-powered plastic waste classifier',
         theme_color: '#16a34a',
         background_color: '#f0fdf4',
@@ -35,6 +35,11 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
+          {
+            // /api/* (classify endpoint) — NEVER cache; offline handled by IndexedDB queue
+            urlPattern: /\/api\//,
+            handler: 'NetworkOnly',
+          },
           {
             // Firebase Firestore + Auth — network first, fall back to cache
             urlPattern: /^https:\/\/.*\.firebaseio\.com\/.*/i,

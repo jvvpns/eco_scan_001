@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { identifyGarbage } from '../services/geminiService';
-import { processScanResult, BADGES } from '../services/gamificationService';
+import { classifyAndScore, getCooldownSecondsLeft, startCooldown, makeThumbnail } from '../services/scanService';
+import { startCamera, stopCamera, captureFrame } from '../services/cameraService';
+import { BADGES } from '../services/gamificationService';
 import { saveScanRecord } from '../services/firestoreService';
 import { IconBack, IconImageUpload } from './Icons';
 import { useAuth } from '../hooks/useAuth';
@@ -8,168 +9,120 @@ import { useToast, ToastContainer } from './Toast';
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 
-const COOLDOWN_SECONDS = 30;
-const REDIRECT_SECONDS = 5;
+const COOLDOWN_SECONDS  = 30;
+const REDIRECT_SECONDS  = 5;
 
 // ─── TYPES ────────────────────────────────────────────────────
 
-type ScanStep = 'camera' | 'classify' | 'scanning' | 'result' | 'no_waste';
+type ScanStep = 'camera' | 'classify' | 'scanning' | 'result' | 'no_waste' | 'queued';
 
 interface ScanResult {
-  isCorrect: boolean;
-  userAnswer: string;
-  aiAnswer: string;
-  itemName: string;
-  pointsEarned: number;
+  isCorrect:           boolean;
+  userAnswer:          string;
+  aiAnswer:            string;
+  itemName:            string;
+  pointsEarned:        number;
   newlyUnlockedBadges: string[];
 }
 
 interface ScanPageProps {
   onScanComplete: () => void;
-  onBack: () => void;
+  onBack:         () => void;
 }
 
 // ─── CATEGORY CONFIG ──────────────────────────────────────────
 
 const CATEGORIES = [
-  { id: 'Residual', label: 'Residual', description: 'General waste that cannot be recycled', color: 'bg-gray-500', hover: 'hover:bg-gray-600' },
-  { id: 'Special', label: 'Special', description: 'Hazardous or special handling required', color: 'bg-red-500', hover: 'hover:bg-red-600' },
+  { id: 'Residual',          label: 'Residual',          description: 'General waste that cannot be recycled',    color: 'bg-gray-500',   hover: 'hover:bg-gray-600' },
+  { id: 'Special',           label: 'Special',           description: 'Hazardous or special handling required',   color: 'bg-red-500',    hover: 'hover:bg-red-600' },
   { id: 'Non-Biodegradable', label: 'Non-Biodegradable', description: 'Materials that do not decompose naturally', color: 'bg-orange-500', hover: 'hover:bg-orange-600' },
-  { id: 'Biodegradable', label: 'Biodegradable', description: 'Organic materials that decompose naturally', color: 'bg-green-500', hover: 'hover:bg-green-600' },
+  { id: 'Biodegradable',     label: 'Biodegradable',     description: 'Organic materials that decompose naturally',color: 'bg-green-500',  hover: 'hover:bg-green-600' },
 ];
-
-// ─── COOLDOWN HELPERS ─────────────────────────────────────────
-// Stored in localStorage so cooldown survives page navigation
-
-const getCooldownKey = (userId: string) => `ecoscan_cooldown_${userId}`;
-
-const getCooldownSecondsLeft = (userId: string): number => {
-  try {
-    const stored = localStorage.getItem(getCooldownKey(userId));
-    if (!stored) return 0;
-    const expiresAt = parseInt(stored, 10);
-    const left = Math.ceil((expiresAt - Date.now()) / 1000);
-    return left > 0 ? left : 0;
-  } catch { return 0; }
-};
-
-const startCooldown = (userId: string) => {
-  try {
-    localStorage.setItem(getCooldownKey(userId), String(Date.now() + COOLDOWN_SECONDS * 1000));
-  } catch { }
-};
-
-// ─── IMAGE COMPRESSION ────────────────────────────────────────
-
-const compressImage = (dataUrl: string, maxSize = 120): string => {
-  try {
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.src = dataUrl;
-    const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-    canvas.width = Math.round(img.width * scale);
-    canvas.height = Math.round(img.height * scale);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return dataUrl;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/jpeg', 0.6);
-  } catch { return dataUrl; }
-};
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────
 
 const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   const { user, unlockedBadgeIds, refreshStats } = useAuth();
 
-  const [step, setStep] = useState<ScanStep>('camera');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // ── State ─────────────────────────────────────────────────
+  const [step, setStep]                       = useState<ScanStep>('camera');
+  const [imagePreview, setImagePreview]       = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [scanResult, setScanResult]           = useState<ScanResult | null>(null);
+  const [isLoading, setIsLoading]             = useState(false);
+  const [error, setError]                     = useState<string | null>(null);
   const [isCameraInitializing, setIsCameraInitializing] = useState(true);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [showBadgeAnim, setShowBadgeAnim] = useState<string | null>(null);
+  const [isCameraReady, setIsCameraReady]     = useState(false);
+  const [isCapturing, setIsCapturing]         = useState(false);
+  const [showBadgeAnim, setShowBadgeAnim]     = useState<string | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_SECONDS);
-  const [cooldownLeft, setCooldownLeft] = useState(0);
-  const [cameraBlocked, setCameraBlocked] = useState(false);
+  const [cooldownLeft, setCooldownLeft]       = useState(0);
+  const [cameraBlocked, setCameraBlocked]     = useState(false);
+
+  // ── Refs ──────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef     = useRef<HTMLVideoElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const streamRef    = useRef<MediaStream | null>(null);
 
   const { toasts, showToast, dismissToast } = useToast();
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   // ── Cooldown ticker ───────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const tick = () => setCooldownLeft(getCooldownSecondsLeft(user.uid));
-    tick(); // immediate
+    tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [user]);
 
-  // ── Camera ────────────────────────────────────────────────
-  const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-      setIsCameraReady(false);
-    }
+  // ── Camera lifecycle ──────────────────────────────────────
+  const handleStopCamera = useCallback(() => {
+    stopCamera(streamRef.current, videoRef.current ?? undefined);
+    streamRef.current = null;
+    setIsCameraReady(false);
   }, []);
 
   useEffect(() => {
+    if (step !== 'camera' || imagePreview) { handleStopCamera(); return; }
+
     let mounted = true;
-    if (step !== 'camera' || imagePreview) { stopCamera(); return; }
+    setIsCameraInitializing(true);
+    setError(null);
 
-    const startCamera = async () => {
-      setIsCameraInitializing(true);
-      setIsCameraReady(false);
-      setError(null);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (!mounted) {
-          stream.getTracks().forEach(t => t.stop());
-          return;
+    (async () => {
+      if (!videoRef.current) return;
+      const cameraResult = await startCamera(videoRef.current);
+
+      if (!mounted) {
+        if (cameraResult.success === true) {
+          stopCamera(cameraResult.stream);
         }
-        streamRef.current = stream;
-        if (videoRef.current) { videoRef.current.srcObject = stream; setIsCameraReady(true); }
-      } catch {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          if (!mounted) {
-            stream.getTracks().forEach(t => t.stop());
-            return;
-          }
-          streamRef.current = stream;
-          if (videoRef.current) { videoRef.current.srcObject = stream; setIsCameraReady(true); }
-        } catch {
-          if (mounted) {
-            setError('Could not access camera. Please ensure permissions are granted.');
-            setCameraBlocked(true);
-          }
-        }
-      } finally {
-        if (mounted) setIsCameraInitializing(false);
+        return;
       }
-    };
 
-    startCamera();
+      if (cameraResult.success === true) {
+        streamRef.current = cameraResult.stream;
+        setIsCameraReady(true);
+      } else if (cameraResult.success === false) {
+        setError(cameraResult.message);
+        if (cameraResult.errorType === 'permission_denied') setCameraBlocked(true);
+      }
+      setIsCameraInitializing(false);
+    })();
+
     return () => {
       mounted = false;
-      stopCamera();
+      handleStopCamera();
     };
-  }, [step, imagePreview, stopCamera]);
+  }, [step, imagePreview, handleStopCamera]);
 
   // ── Auto-redirect after result ────────────────────────────
   useEffect(() => {
     if (step !== 'result') return;
 
     if (scanResult?.newlyUnlockedBadges.length) {
-      const badgeId = scanResult.newlyUnlockedBadges[0];
-      setShowBadgeAnim(badgeId);
+      setShowBadgeAnim(scanResult.newlyUnlockedBadges[0]);
       setTimeout(() => setShowBadgeAnim(null), 2500);
     }
 
@@ -184,19 +137,14 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     return () => clearInterval(interval);
   }, [step]);
 
-  // ── Handlers ──────────────────────────────────────────────
+  // ── Capture ───────────────────────────────────────────────
   const handleCapture = () => {
     if (!videoRef.current || !canvasRef.current || !isCameraReady) return;
     setIsCapturing(true);
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      setImagePreview(canvas.toDataURL('image/jpeg'));
-      stopCamera();
+    const dataUrl = captureFrame(videoRef.current, canvasRef.current);
+    if (dataUrl) {
+      setImagePreview(dataUrl);
+      handleStopCamera();
       setStep('classify');
     }
     setTimeout(() => setIsCapturing(false), 100);
@@ -205,13 +153,14 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    stopCamera();
+    handleStopCamera();
     setError(null);
     const reader = new FileReader();
     reader.onloadend = () => { setImagePreview(reader.result as string); setStep('classify'); };
     reader.readAsDataURL(file);
   };
 
+  // ── Category selection + scan ─────────────────────────────
   const handleCategorySelect = async (categoryId: string) => {
     if (!imagePreview || !user) return;
 
@@ -221,43 +170,52 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     setError(null);
 
     try {
-      // 1. Call Gemini
-      const base64Data = imagePreview.split(',')[1];
-      const result = await identifyGarbage(base64Data);
+      // Single call to the server — all logic (AI, scoring, Firestore) runs there
+      const result = await classifyAndScore(imagePreview, categoryId);
 
-      // 2. No waste detected — skip scoring, show retry screen
+      // ── Offline queue fallback ──────────────────────────
+      if (result.queued) {
+        showToast('No internet — scan saved. It will be processed when you\'re back online 📶', 'info');
+        setStep('queued');
+        return;
+      }
+
+      // ── No waste detected ───────────────────────────────
       if (result.noWasteDetected) {
         setStep('no_waste');
         return;
       }
 
-      const aiAnswer = result.garbageType;
-      const isCorrect = categoryId.toLowerCase() === aiAnswer.toLowerCase();
+      // ── Save thumbnail to Firestore ─────────────────────
+      // The server already wrote the scan record with points. We just add the thumbnail.
+      try {
+        const thumbnail = await makeThumbnail(imagePreview);
+        await saveScanRecord(user.uid, user.displayName ?? 'Anonymous', {
+          itemName:     result.itemName ?? 'Unknown Item',
+          userAnswer:   categoryId,
+          aiAnswer:     result.aiAnswer ?? '',
+          isCorrect:    result.isCorrect,
+          pointsEarned: result.pointsEarned,
+          imageUrl:     thumbnail,
+        });
+      } catch {
+        /* Thumbnail save is best-effort — don't block the result screen */
+      }
 
-      // 3. Gamification
-      const { pointsEarned, newlyUnlockedBadges } =
-        await processScanResult(user.uid, isCorrect, unlockedBadgeIds ?? []);
-
-      // 4. Save to Firestore
-      const thumbnail = compressImage(imagePreview, 120);
-      await saveScanRecord(user.uid, user.displayName ?? 'Anonymous', {
-        itemName: result.itemName ?? 'Unknown Item',
-        userAnswer: categoryId,
-        aiAnswer,
-        isCorrect,
-        pointsEarned,
-        imageUrl: thumbnail,
-      });
-
-      // 5. Start cooldown AFTER successful scan
+      // ── Start cooldown & refresh ────────────────────────
       startCooldown(user.uid);
       setCooldownLeft(COOLDOWN_SECONDS);
-
-      // 6. Refresh stats & signal completion
       await refreshStats();
       onScanComplete();
 
-      setScanResult({ isCorrect, userAnswer: categoryId, aiAnswer, itemName: result.itemName, pointsEarned, newlyUnlockedBadges });
+      setScanResult({
+        isCorrect:           result.isCorrect,
+        userAnswer:          categoryId,
+        aiAnswer:            result.aiAnswer ?? '',
+        itemName:            result.itemName,
+        pointsEarned:        result.pointsEarned,
+        newlyUnlockedBadges: result.newlyUnlockedBadges,
+      });
       setStep('result');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'AI scan failed. Please try again.', 'error');
@@ -279,7 +237,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   // ─── RENDER: CAMERA ───────────────────────────────────────
 
   if (step === 'camera') {
-    // ── Full-screen fallback: camera permanently blocked ──
     if (cameraBlocked) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-8 gap-5">
@@ -290,7 +247,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           <div className="text-center">
             <p className="text-white font-black text-xl">Camera Access Denied</p>
             <p className="text-gray-400 text-sm mt-2 leading-relaxed max-w-xs mx-auto">
-              EcoScan needs camera access to classify waste items. Please enable it in your device settings and try again.
+              Pilot needs camera access to classify waste items. Please enable it in your device settings and try again.
             </p>
           </div>
           <div className="bg-gray-800 rounded-2xl p-4 w-full max-w-sm">
@@ -321,73 +278,85 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     }
 
     return (
-      <div className="flex flex-col h-full bg-black min-h-screen">
+      <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-        <div className="absolute top-4 left-4 z-20">
-          <button onClick={onBack} className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition">
+        
+        {/* Top Back Button */}
+        <div className="absolute top-safe-top left-4 mt-4 z-30">
+          <button onClick={onBack} className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition shadow-lg">
             <IconBack size={24} color="white" />
           </button>
         </div>
 
-        {/* Cooldown banner */}
+        {/* Cooldown Timer */}
         {cooldownLeft > 0 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-orange-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="absolute top-safe-top left-1/2 -translate-x-1/2 mt-4 z-30 bg-orange-500/90 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
             <span>⏱️</span>
             <span>Next scan in {cooldownLeft}s</span>
           </div>
         )}
 
-        <div className="flex-1 relative flex justify-center items-center overflow-hidden">
+        {/* Full Screen Camera View */}
+        <div className="absolute inset-0 z-0 bg-black flex justify-center items-center">
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
 
-          {/* Scan frame overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-64 h-64 border-2 border-white/60 rounded-2xl relative">
-              <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-xl" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-xl" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-xl" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-xl" />
+          {/* Scanner Overlay Guide */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="w-72 h-72 border-2 border-white/40 rounded-[2rem] relative shadow-[0_0_0_9999px_rgba(0,0,0,0.3)]">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-[2rem]" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-[2rem]" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-[2rem]" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-[2rem]" />
             </div>
           </div>
 
-          {isCapturing && <div className="absolute inset-0 bg-white opacity-70 animate-pulse" />}
+          {isCapturing && <div className="absolute inset-0 bg-white opacity-80 animate-pulse z-20" />}
           {isCameraInitializing && !error && (
-            <div className="absolute inset-0 flex justify-center items-center bg-black/50">
-              <p className="text-white text-sm font-semibold">Starting camera...</p>
+            <div className="absolute inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm z-20">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white" />
+                <p className="text-white font-medium tracking-wide text-sm">Accessing camera...</p>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="p-4 bg-black/30">
-          <p className="text-white/60 text-xs text-center mb-3">
+        {/* Floating Bottom Controls */}
+        <div className="absolute bottom-0 left-0 w-full px-6 pt-16 pb-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20 flex flex-col items-center pb-safe">
+          <p className="text-white/90 text-sm font-medium text-center mb-6 tracking-wide drop-shadow-md">
             Position waste item inside the frame
           </p>
-          {error && <p className="text-red-400 text-center mb-4 text-sm font-medium">{error}</p>}
+          
+          {error && <p className="text-red-400 text-center mb-4 text-sm font-medium bg-red-900/50 px-4 py-2 rounded-xl backdrop-blur-md">{error}</p>}
 
-          <div className="flex w-full items-center justify-around">
-            <div className="w-16 h-16" />
-            {/* Capture button — disabled during cooldown */}
+          <div className="flex w-full items-center justify-between max-w-sm">
+            {/* Empty space for balance */}
+            <div className="w-14 h-14" />
+            
+            {/* Capture Button */}
             <button
               onClick={handleCapture}
               disabled={!isCameraReady || !!error || cooldownLeft > 0}
-              className="w-20 h-20 rounded-full bg-white p-1 flex items-center justify-center transition-transform active:scale-90 shadow-lg disabled:opacity-40"
+              className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md p-1.5 flex items-center justify-center transition-transform active:scale-90 shadow-xl disabled:opacity-40 border border-white/30"
               aria-label="Capture image"
             >
               {cooldownLeft > 0 ? (
-                <div className="w-full h-full rounded-full border-4 border-orange-400 flex items-center justify-center">
-                  <span className="text-orange-500 font-black text-lg">{cooldownLeft}</span>
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                  <span className="text-black font-black text-xl">{cooldownLeft}</span>
                 </div>
               ) : (
-                <div className="w-full h-full rounded-full border-4 border-black" />
+                <div className="w-full h-full rounded-full bg-white shadow-inner" />
               )}
             </button>
+            
+            {/* Library / Upload Button */}
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={cooldownLeft > 0}
-              className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-700/50 hover:bg-gray-700/70 disabled:opacity-40"
+              className="w-14 h-14 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 disabled:opacity-40 transition-colors shadow-lg"
               aria-label="Upload from library"
             >
-              <IconImageUpload size={28} color="white" />
+              <IconImageUpload size={24} color="white" />
             </button>
           </div>
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
@@ -448,7 +417,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
   if (step === 'scanning') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#f8fafc] gap-8 p-8 relative overflow-hidden">
-        {/* Background decorative circles */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-green-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -482,6 +450,34 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     );
   }
 
+  // ─── RENDER: QUEUED (offline) ──────────────────────────────
+
+  if (step === 'queued') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f8fafc] gap-5 p-8">
+        <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center">
+          <span className="text-5xl">📶</span>
+        </div>
+        <div className="text-center">
+          <p className="text-gray-900 text-2xl font-black">Scan Queued</p>
+          <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-xs mx-auto">
+            You're offline. Your scan has been saved and will be processed automatically when your internet connection returns.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          <button onClick={resetScan}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm">
+            📷 Scan Another Item
+          </button>
+          <button onClick={onBack}
+            className="w-full bg-white border border-gray-200 text-gray-600 font-semibold py-3 rounded-2xl active:scale-95 transition-all">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ─── RENDER: NO WASTE DETECTED ────────────────────────────
 
   if (step === 'no_waste') {
@@ -490,31 +486,26 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
         <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center">
           <span className="text-5xl">🔍</span>
         </div>
-
         <div className="text-center">
           <p className="text-gray-900 text-2xl font-black">No Waste Found</p>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-xs mx-auto">
-            The AI couldn't identify a waste item in the image. Make sure the item is clearly visible and centered in the frame.
+            The AI couldn't identify a waste item in the image. Make sure the item is clearly visible and centred in the frame.
           </p>
         </div>
-
         {imagePreview && (
           <div className="w-40 h-40 rounded-xl overflow-hidden shadow-md border border-gray-200">
             <img src={imagePreview} alt="No waste detected" className="w-full h-full object-contain bg-black" />
           </div>
         )}
-
-        {/* Tips */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 w-full max-w-sm">
           <p className="text-yellow-800 font-bold text-sm mb-2">💡 Tips for better results</p>
           <ul className="text-yellow-700 text-xs space-y-1">
             <li>• Hold the item close to the camera</li>
             <li>• Ensure good lighting</li>
-            <li>• Center the item in the frame</li>
+            <li>• Centre the item in the frame</li>
             <li>• Avoid blurry or dark images</li>
           </ul>
         </div>
-
         <div className="flex flex-col gap-3 w-full max-w-sm">
           <button onClick={resetScan}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-sm">
@@ -537,13 +528,10 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
     return (
       <div className="flex flex-col min-h-screen bg-[#f8fafc]">
-
-        {/* Splash Header for Result */}
         <div className={`pt-16 pb-12 px-6 rounded-b-[2.5rem] shadow-sm relative overflow-hidden shrink-0 transition-colors duration-500 flex flex-col items-center text-center ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/5 rounded-full blur-2xl -ml-16 -mb-16 pointer-events-none" />
 
-          {/* Badge unlock overlay */}
           {showBadgeAnim && unlockedBadge && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
               <div className="bg-white rounded-[2rem] p-8 flex flex-col items-center gap-3 shadow-2xl mx-6 animate-slide-up">
@@ -561,7 +549,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
             <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center shadow-lg border-4 border-white pb-1 mb-5 ${isCorrect ? 'bg-green-400' : 'bg-red-400'}`}>
               <span className="text-5xl">{isCorrect ? '✅' : '❌'}</span>
             </div>
-
             <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm">
               {isCorrect ? 'Spot On! 🎉' : 'Not quite right'}
             </p>
@@ -574,9 +561,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           </div>
         </div>
 
-        {/* scrollable content */}
         <div className="flex-1 px-6 pt-8 pb-10 flex flex-col gap-4">
-          {/* Answer comparison */}
           <div className="flex gap-4 w-full">
             <div className="flex-1 rounded-[1.25rem] p-4 text-center bg-white shadow-sm border border-gray-100">
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Your Answer</p>
@@ -588,7 +573,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
             </div>
           </div>
 
-          {/* Tip on wrong answer */}
           {!isCorrect && (
             <div className="w-full bg-amber-50 border border-amber-100 rounded-[1.25rem] p-4 flex gap-3 shadow-sm">
               <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
@@ -603,7 +587,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
             </div>
           )}
 
-          {/* Badge unlocked note */}
           {newlyUnlockedBadges.length > 0 && !showBadgeAnim && (
             <div className="w-full bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-[1.25rem] p-4 flex items-center justify-center gap-2 shadow-sm">
               <span className="text-xl">🏅</span>
@@ -614,14 +597,11 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           )}
 
           <div className="mt-auto pt-6 flex flex-col gap-3">
-            {/* Cooldown notice */}
             <div className="w-full bg-gray-100 rounded-full px-4 py-2 text-center">
               <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
                 ⏱️ Next scan available in <span className="text-gray-900">{COOLDOWN_SECONDS}s</span>
               </p>
             </div>
-
-            {/* Manual back button combined w countdown */}
             <button onClick={onBack}
               className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
               Back to Dashboard

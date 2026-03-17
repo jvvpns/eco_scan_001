@@ -7,7 +7,7 @@ import {
   IconHome, IconMissions, IconLeaderboard, IconProfile,
   IconScanNav, IconNotifications, IconRecycling, IconOrganic,
   IconEcoPoints, IconStreak, IconScan, IconDeleteScan,
-  EcoScanBrandIcon,
+  PilotBrandIcon,
 } from './Icons';
 
 // ─── PROPS ────────────────────────────────────────────────────

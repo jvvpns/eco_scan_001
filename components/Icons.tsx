@@ -1,5 +1,5 @@
 /**
- * EcoScan Icon System
+ * Pilot Icon System
  * ---------------------------------------------------------------------------
  * All icons are inline SVG, viewBox="0 0 24 24", stroke-width 2,
  * stroke-linecap round, stroke-linejoin round.
@@ -324,15 +324,16 @@ export const IconMenu: React.FC<IconProps> = ({ size = 24, color = 'currentColor
   );
 
 // ─── APP BRAND ICON (for splash / install banner) ─────────────
-export const EcoScanBrandIcon: React.FC<IconProps> = ({ size = 32, color = 'white', className }) =>
-  base(
-    <>
-      <path d="M12 3L8.5 8H11V13H13V8H15.5L12 3Z" stroke={color} />
-      <path d="M5.5 10.5L3.5 15H6.5L8 19H11L9 15H12L9.5 10.5H5.5Z" stroke={color} />
-      <path d="M18.5 10.5L20.5 15H17.5L16 19H13L15 15H12L14.5 10.5H18.5Z" stroke={color} />
-    </>,
-    size, color, className
-  );
+export const PilotBrandIcon: React.FC<IconProps> = ({ size = 32, className }) => (
+  <img 
+    src="/icons/icon-192x192.png" 
+    alt="Pilot Logo" 
+    width={size} 
+    height={size} 
+    className={className} 
+    style={{ objectFit: 'contain' }}
+  />
+);
 
 // ─── ALIASES & SPECIALTY ICONS ───────────────────────────────
 

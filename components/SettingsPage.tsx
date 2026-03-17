@@ -140,7 +140,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, onBack }) => {
               icon={<InfoIcon />}
               iconBg="bg-gray-100"
               label="App Version"
-              sublabel="EcoScan v1.0.0"
+              sublabel="Pilot v1.0.0"
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { EcoScanBrandIcon, IconProfile, IconSearch } from './Icons';
+import { PilotBrandIcon, IconProfile, IconSearch } from './Icons';
 import { loginUser, registerUser } from '../services/authService';
 import { initUserStats } from '../services/firestoreService';
 
@@ -162,10 +162,10 @@ const LoginPage: React.FC = () => {
         <div className="absolute top-40 right-4 w-56 h-56 bg-green-400/20 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 inline-flex items-center justify-center bg-white/20 backdrop-blur-xl p-5 rounded-[2rem] shadow-xl border border-white/30 mb-6 group">
-          <span className="text-6xl drop-shadow-xl group-hover:scale-105 transition-transform">🌍</span>
+          <PilotBrandIcon size={56} className="drop-shadow-xl group-hover:scale-105 transition-transform" />
         </div>
         
-        <h1 className="mt-2 text-[40px] leading-none font-black text-white tracking-tight relative z-10">EcoScan</h1>
+        <h1 className="mt-2 text-[40px] leading-none font-black text-white tracking-tight relative z-10">Pilot</h1>
         <p className="text-green-50 mt-3 text-base font-semibold tracking-wide relative z-10 opacity-90">
           Scan. Classify. Save the Planet.
         </p>

@@ -5,38 +5,15 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-// ─── ECOSCAN SVG ICON (inline, no external dependency) ────────
-const EcoScanIcon: React.FC<{ size?: number }> = ({ size = 32 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    {/* Recycle arrows — three-turn cycle */}
-    <path
-      d="M12 3L7 8H10V13H14V8H17L12 3Z"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M5.5 10L3 15.5H6.5L8 19.5H11L9 15.5H12.5L10 10H5.5Z"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M18.5 10L21 15.5H17.5L16 19.5H13L15 15.5H11.5L14 10H18.5Z"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
+// ─── PILOT ICON ────────
+const PilotIcon: React.FC<{ size?: number }> = ({ size = 32 }) => (
+  <img 
+    src="/icons/icon-192x192.png" 
+    alt="Pilot Logo" 
+    width={size} 
+    height={size} 
+    style={{ objectFit: 'contain' }}
+  />
 );
 
 // ─── CLOSE ICON ────────────────────────────────────────────────
@@ -129,13 +106,13 @@ const PWAInstallBanner: React.FC = () => {
 
         {/* App icon — uses inline SVG from icon system */}
         <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center shrink-0 shadow-sm shadow-green-200">
-          <EcoScanIcon size={28} />
+          <PilotIcon size={28} />
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0">
           <p className="font-black text-gray-800 text-sm leading-tight">
-            Add EcoScan to Home Screen
+            Add Pilot to Home Screen
           </p>
           <p className="text-gray-400 text-xs mt-0.5">
             Install for the best experience
