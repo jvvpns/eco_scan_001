@@ -61,7 +61,8 @@ const MISSIONS = [
     target: 75,
     points: 100,
     getProgress: (stats: UserStats) => {
-      if (stats.totalScans < 8) return 0;
+      // Show actual accuracy even before 8 scans, but target check remains for completion
+      if (stats.totalScans === 0) return 0;
       return Math.round((stats.correctScans / stats.totalScans) * 100);
     },
   },
@@ -122,7 +123,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── 2. Validate request body ───────────────────────────────
-  const { imageBase64, userAnswer } = req.body as { imageBase64?: string; userAnswer?: string };
+  const { imageBase64, userAnswer, thumbnailBase64 } = req.body as { 
+    imageBase64?: string; 
+    userAnswer?: string;
+    thumbnailBase64?: string;
+  };
 
   if (!imageBase64 || typeof imageBase64 !== 'string') {
     return res.status(400).json({ error: 'imageBase64 is required' });
@@ -363,21 +368,22 @@ When uncertain between two categories, choose the one that poses the greater env
     aiAnswer,
     isCorrect,
     pointsEarned: totalPointsEarned,
+    imageUrl: thumbnailBase64 || null,
     timestamp: FieldValue.serverTimestamp(),
   };
   const scanWrite = db.collection('scans').add(scanRecord);
 
-  // ── 14. Commit all writes in parallel ─────────────────────
-  await Promise.all([
+  const [scanDoc] = await Promise.all([
+    scanWrite,
     statsRef.update(updatedStats),
     leaderboardWrite,
-    scanWrite,
     ...missionWrites,
     ...badgeWrites,
   ]);
 
   // ── 15. Return sanitised result to frontend ───────────────
   return res.status(200).json({
+    id: scanDoc.id,
     noWasteDetected: false,
     itemName: geminiResult.itemName,
     aiAnswer,

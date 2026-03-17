@@ -180,20 +180,44 @@ const WASTE_TYPES_DATA = [
 
 // ─── WASTE TYPES SECTION (expandable accordion) ───────────────
 
-const WasteTypesSection: React.FC = () => {
-  const [expandedType, setExpandedType] = useState<string | null>(null);
-  const toggle = (id: string) => setExpandedType(prev => prev === id ? null : id);
+const WasteTypesSection: React.FC<{ onNavigate: (page: Page) => void }> = ({ onNavigate }) => {
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set());
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
+
+  const toggle = (id: string) => {
+    setExpandedTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (isAllExpanded) {
+      setExpandedTypes(new Set());
+      setIsAllExpanded(false);
+    } else {
+      setExpandedTypes(new Set(WASTE_TYPES_DATA.map(t => t.id)));
+      setIsAllExpanded(true);
+    }
+  };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-gray-900 font-bold text-lg tracking-tight">Waste Types</p>
-        <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition">View All</button>
+        <button 
+          onClick={toggleAll}
+          className="text-green-600 text-sm font-semibold hover:text-green-700 transition"
+        >
+          {isAllExpanded ? 'Collapse All' : 'View All'}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         {WASTE_TYPES_DATA.map(type => {
-          const isOpen = expandedType === type.id;
+          const isOpen = expandedTypes.has(type.id);
           return (
             <button
               key={type.id}
@@ -294,7 +318,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const { userStats, loading, user, refreshStats } = useAuth();
   const { toasts, showToast, dismissToast } = useToast();
+  const [showScansOverlay, setShowScansOverlay] = useState(false);
   
+  // ── Dynamic Greeting Logic ────────────────────────────────
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    if (hour >= 17 && hour < 21) return "Good Evening";
+    return "Good Night";
+  };
+
+  const greeting = getGreeting();
+
   // Rotate eco tip every 10 seconds
   useEffect(() => {
     if (tipDismissed) return;
@@ -372,7 +408,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <p className="text-green-100 text-sm font-medium mb-0.5">
-              Good morning,
+              {greeting},
             </p>
             <h1 className="text-white font-black text-2xl tracking-tight">
               {user?.displayName ? user.displayName.split(' ')[0] : 'Eco Warrior'} 👋
@@ -400,10 +436,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* ── SCROLLABLE CONTENT ─────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-5 pt-6 pb-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-5 pt-6 pb-48 pb-safe space-y-6">
 
         {/* WASTE TYPES (CATEGORIES) */}
-        <WasteTypesSection />
+        <WasteTypesSection onNavigate={onNavigate} />
 
         {/* GAMIFICATION STATS */}
         <div className="flex gap-3">
@@ -438,7 +474,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="flex items-center justify-between mb-3">
             <p className="text-gray-900 font-bold text-lg tracking-tight">Recent Scans</p>
             {recentScans.length > 0 && (
-              <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition">See all</button>
+              <button 
+                onClick={() => setShowScansOverlay(true)}
+                className="text-green-600 text-sm font-semibold hover:text-green-700 transition"
+              >
+                See all
+              </button>
             )}
           </div>
 
@@ -526,8 +567,80 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           )}
         </div>
-
       </div>
+
+      {/* ── RECENT SCANS OVERLAY ────────────────────────────── */}
+      {showScansOverlay && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-t-[2.5rem] w-full max-w-lg p-6 pb-12 pb-safe space-y-6 animate-slide-up max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                  <IconRecycling size={22} />
+                </div>
+                <div>
+                  <h3 className="text-gray-900 font-black text-xl tracking-tight leading-none">Scan History</h3>
+                  <p className="text-gray-400 text-xs font-semibold mt-1 uppercase tracking-wider">Your complete records</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowScansOverlay(false)}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 hover:bg-gray-100 transition-colors shadow-sm"
+              >
+                <span className="text-2xl text-gray-400">×</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+              {recentScans.length > 0 ? (
+                recentScans.map(scan => {
+                  const categoryColor = CATEGORY_COLORS[scan.aiAnswer] ?? 'bg-gray-100 text-gray-600';
+                  return (
+                    <div key={scan.id} className="bg-white rounded-2xl p-4 flex items-center gap-4 border border-gray-100 shadow-sm transition-all hover:border-green-100/60 group">
+                      {scan.imageUrl ? (
+                        <img src={scan.imageUrl} alt={scan.itemName} className="w-16 h-16 rounded-xl object-cover shrink-0 shadow-sm border border-gray-50" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-gray-50 flex items-center justify-center shrink-0 text-2xl border border-gray-100">♻️</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-900 font-black text-sm truncate uppercase tracking-tight">{scan.itemName}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide ${categoryColor}`}>
+                            {scan.aiAnswer}
+                          </span>
+                          <p className="text-gray-400 text-[10px] font-bold flex items-center gap-1">
+                            {formatTimestamp(scan.timestamp)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={`font-black text-lg leading-none ${scan.isCorrect ? 'text-green-600' : 'text-gray-300'}`}>
+                          {scan.isCorrect ? `+${scan.pointsEarned}` : '—'}
+                        </p>
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mt-1">{scan.isCorrect ? 'pts' : 'missed'}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-20 flex flex-col items-center gap-4 text-center">
+                  <div className="text-5xl opacity-40">📭</div>
+                  <p className="text-gray-400 font-bold text-sm">No scans found in your history.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 shrink-0">
+              <button 
+                onClick={() => setShowScansOverlay(false)}
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black active:scale-[0.98] transition-all shadow-xl shadow-gray-200"
+              >
+                Close History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

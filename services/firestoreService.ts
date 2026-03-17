@@ -95,6 +95,11 @@ export const deleteScanRecord = async (scanId: string): Promise<void> => {
   await deleteDoc(ref);
 };
 
+export const updateScanThumbnail = async (scanId: string, imageUrl: string): Promise<void> => {
+  const ref = doc(db, 'scans', scanId);
+  await updateDoc(ref, { imageUrl });
+};
+
 /**
  * Deducts the points and counters for a deleted scan from UserStats + leaderboard.
  * isCorrect flag is needed to also roll back correctScans count.

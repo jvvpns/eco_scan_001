@@ -238,8 +238,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
 
       {/* ── EDIT PROFILE MODAL ─────────────────────────────── */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-t-[2rem] w-full max-w-lg p-6 pb-10 space-y-5 animate-slide-up max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-t-[2rem] w-full max-w-lg p-6 pb-12 pb-safe space-y-5 animate-slide-up max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-gray-900 font-black text-xl tracking-tight">Edit Profile</h3>
               <button onClick={() => setShowEditModal(false)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition">

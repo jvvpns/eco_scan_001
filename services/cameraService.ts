@@ -64,10 +64,26 @@ export function captureFrame(
   videoEl: HTMLVideoElement,
   canvasEl: HTMLCanvasElement
 ): string | null {
-  canvasEl.width  = videoEl.videoWidth;
-  canvasEl.height = videoEl.videoHeight;
+  const { videoWidth, videoHeight } = videoEl;
+  
+  // Define a square crop based on the center of the video
+  // We match the 72x72 UI guide which is effectively a 1:1 square
+  const size = Math.min(videoWidth, videoHeight);
+  const startX = (videoWidth - size) / 2;
+  const startY = (videoHeight - size) / 2;
+
+  canvasEl.width  = size;
+  canvasEl.height = size;
+  
   const ctx = canvasEl.getContext('2d');
   if (!ctx) return null;
-  ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-  return canvasEl.toDataURL('image/jpeg');
+
+  // Draw ONLY the center square portion of the video to the canvas
+  ctx.drawImage(
+    videoEl, 
+    startX, startY, size, size, // Source (center crop)
+    0, 0, size, size            // Destination (canvas)
+  );
+  
+  return canvasEl.toDataURL('image/jpeg', 0.85); // High quality
 }

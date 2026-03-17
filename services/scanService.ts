@@ -16,6 +16,7 @@ import { queueScan, registerSyncIfSupported } from './offlineQueue';
 // ─── TYPES ────────────────────────────────────────────────────
 
 export interface ClassifyResult {
+  id:                  string;
   noWasteDetected:     boolean;
   itemName:            string;
   aiAnswer:            string | null;
@@ -94,6 +95,7 @@ export const makeThumbnail = (dataUrl: string): Promise<string> =>
 export const classifyAndScore = async (
   imageDataUrl:  string,
   userAnswer:    string,
+  thumbnailBase64?: string,
 ): Promise<ClassifyResult> => {
   // Get Firebase Auth ID token
   const currentUser = auth.currentUser;
@@ -117,7 +119,11 @@ export const classifyAndScore = async (
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ imageBase64: compressedBase64, userAnswer }),
+      body: JSON.stringify({ 
+        imageBase64: compressedBase64, 
+        userAnswer,
+        thumbnailBase64
+      }),
     });
 
     if (!response.ok) {
@@ -142,6 +148,7 @@ export const classifyAndScore = async (
       await registerSyncIfSupported();
 
       return {
+        id:                  '',
         noWasteDetected:     false,
         itemName:            '',
         aiAnswer:            null,

@@ -170,8 +170,12 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     setError(null);
 
     try {
+      // Create thumbnail locally BEFORE calling the API
+      // This ensures the record is created with an image atomically on the server
+      const thumbnail = await makeThumbnail(imagePreview);
+
       // Single call to the server — all logic (AI, scoring, Firestore) runs there
-      const result = await classifyAndScore(imagePreview, categoryId);
+      const result = await classifyAndScore(imagePreview, categoryId, thumbnail);
 
       // ── Offline queue fallback ──────────────────────────
       if (result.queued) {
@@ -184,22 +188,6 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       if (result.noWasteDetected) {
         setStep('no_waste');
         return;
-      }
-
-      // ── Save thumbnail to Firestore ─────────────────────
-      // The server already wrote the scan record with points. We just add the thumbnail.
-      try {
-        const thumbnail = await makeThumbnail(imagePreview);
-        await saveScanRecord(user.uid, user.displayName ?? 'Anonymous', {
-          itemName:     result.itemName ?? 'Unknown Item',
-          userAnswer:   categoryId,
-          aiAnswer:     result.aiAnswer ?? '',
-          isCorrect:    result.isCorrect,
-          pointsEarned: result.pointsEarned,
-          imageUrl:     thumbnail,
-        });
-      } catch {
-        /* Thumbnail save is best-effort — don't block the result screen */
       }
 
       // ── Start cooldown & refresh ────────────────────────
@@ -282,7 +270,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         
         {/* Top Back Button */}
-        <div className="absolute top-safe-top left-4 mt-4 z-30">
+        <div className="absolute top-0 left-0 p-4 pt-safe z-30">
           <button onClick={onBack} className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition shadow-lg">
             <IconBack size={24} color="white" />
           </button>
@@ -290,9 +278,11 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
         {/* Cooldown Timer */}
         {cooldownLeft > 0 && (
-          <div className="absolute top-safe-top left-1/2 -translate-x-1/2 mt-4 z-30 bg-orange-500/90 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-            <span>⏱️</span>
-            <span>Next scan in {cooldownLeft}s</span>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 p-4 pt-safe z-30">
+            <div className="bg-orange-500/90 backdrop-blur-md text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+              <span>⏱️</span>
+              <span>Next scan in {cooldownLeft}s</span>
+            </div>
           </div>
         )}
 
@@ -372,7 +362,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     return (
       <div className="flex flex-col min-h-screen bg-[#f8fafc]">
         <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-        <div className="flex items-center gap-3 p-5 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative z-10">
+        <div className="flex items-center gap-3 p-5 pt-safe bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] relative z-10">
           <button onClick={resetScan} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <IconBack size={24} color="#1f2937" />
           </button>
@@ -384,7 +374,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
 
         {imagePreview && (
           <div className="mx-4 mt-4 rounded-xl overflow-hidden h-44 bg-black shadow-md">
-            <img src={imagePreview} alt="Captured item" className="w-full h-full object-contain" />
+            <img src={imagePreview} alt="Captured item" className="w-full h-full object-cover" />
           </div>
         )}
 

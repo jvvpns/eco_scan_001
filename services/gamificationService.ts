@@ -88,7 +88,7 @@ export const MISSIONS = [
     target: 75,
     points: 100,
     getProgress: (stats: UserStats) => {
-      if (stats.totalScans < 8) return 0;
+      if (stats.totalScans === 0) return 0;
       return Math.round((stats.correctScans / stats.totalScans) * 100);
     },
   },
