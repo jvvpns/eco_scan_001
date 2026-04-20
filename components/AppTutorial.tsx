@@ -65,7 +65,7 @@ const AppTutorial: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('pilot_app_tutorial_seen');
+    const hasSeenTutorial = sessionStorage.getItem('pilot_app_tutorial_seen');
     if (!hasSeenTutorial) {
       setIsOpen(true);
     }
@@ -80,7 +80,7 @@ const AppTutorial: React.FC = () => {
   };
 
   const handleClose = () => {
-    localStorage.setItem('pilot_app_tutorial_seen', 'true');
+    sessionStorage.setItem('pilot_app_tutorial_seen', 'true');
     setIsOpen(false);
   };
 

@@ -5,14 +5,14 @@ const ScannerTutorial: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const hasSeenScannerTutorial = localStorage.getItem('pilot_scanner_tutorial_seen');
+    const hasSeenScannerTutorial = sessionStorage.getItem('pilot_scanner_tutorial_seen');
     if (!hasSeenScannerTutorial) {
       setIsOpen(true);
     }
   }, []);
 
   const handleStart = () => {
-    localStorage.setItem('pilot_scanner_tutorial_seen', 'true');
+    sessionStorage.setItem('pilot_scanner_tutorial_seen', 'true');
     setIsOpen(false);
   };
 
