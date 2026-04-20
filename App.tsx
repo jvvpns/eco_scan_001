@@ -87,6 +87,9 @@ function buildPage(
   }
 }
 
+// ─── APP VERSION (Bump this to force a hard reset on redeploy) ───
+const APP_VERSION = '1.0.1_pilot'; 
+
 // ─── APP ──────────────────────────────────────────────────────
 function App() {
   const [currentPage, setCurrentPage]         = useState<Page>(Page.LOGIN);
@@ -101,6 +104,16 @@ function App() {
   const timerRef                              = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // HARD RESET LOGIC (Clears storage if version mismatch)
+    const storedVersion = localStorage.getItem('pilot_app_version');
+    if (storedVersion !== APP_VERSION) {
+      console.log(`Hard Reset: Migrating from ${storedVersion} to ${APP_VERSION}`);
+      localStorage.clear();
+      sessionStorage.clear();
+      localStorage.setItem('pilot_app_version', APP_VERSION);
+      // Optional: window.location.reload(); // Usually not needed if we do this at boot
+    }
+
     // DIAGNOSTIC LOGGING
     console.log('Firebase Project ID (Client):', (auth.app.options as any).projectId);
     

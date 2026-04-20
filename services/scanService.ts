@@ -112,55 +112,76 @@ export const classifyAndScore = async (
   const compressedBase64 = await compressImage(`data:image/jpeg;base64,${base64}`)
     .then(dataUrl => dataUrl.split(',')[1]);
 
-  try {
-    const response = await fetch(CLASSIFY_URL, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ 
-        imageBase64: compressedBase64, 
-        userAnswer,
-        thumbnailBase64
-      }),
-    });
+  const MAX_ATTEMPTS = 2;
+  let lastError: any;
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: 'Unknown server error' }));
-      throw new Error(err.error ?? `Server error ${response.status}`);
-    }
-
-    return await response.json() as ClassifyResult;
-  } catch (err) {
-    // Detect offline / network failure
-    if (
-      err instanceof TypeError && err.message.toLowerCase().includes('fetch') ||
-      !navigator.onLine
-    ) {
-      // Queue for Background Sync
-      await queueScan({
-        id:          crypto.randomUUID(),
-        imageBase64: compressedBase64,
-        userAnswer,
-        timestamp:   Date.now(),
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(CLASSIFY_URL, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ 
+          imageBase64: compressedBase64, 
+          userAnswer,
+          thumbnailBase64
+        }),
       });
-      await registerSyncIfSupported();
 
-      return {
-        id:                  '',
-        noWasteDetected:     false,
-        itemName:            '',
-        aiAnswer:            null,
-        isCorrect:           false,
-        pointsEarned:        0,
-        newlyUnlockedBadges: [],
-        completedMissions:   [],
-        description:         null,
-        queued:              true,
-      };
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: 'Unknown server error' }));
+        const errorMessage = errData.error ?? `Server error ${response.status}`;
+        
+        // If it's a retriable server error (502, 503, 504, 429) and we have attempts left
+        if ([429, 502, 503, 504].includes(response.status) && attempt < MAX_ATTEMPTS) {
+          console.warn(`Classification attempt ${attempt} failed (${response.status}). Retrying in 1.5s...`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      return await response.json() as ClassifyResult;
+    } catch (err) {
+      lastError = err;
+      
+      // Detect offline / network failure — Fallback to offline queue
+      if (
+        (err instanceof TypeError && err.message.toLowerCase().includes('fetch')) ||
+        !navigator.onLine
+      ) {
+        console.log('Network unavailable. Queuing scan for background sync...');
+        await queueScan({
+          id:          crypto.randomUUID(),
+          imageBase64: compressedBase64,
+          userAnswer,
+          timestamp:   Date.now(),
+        });
+        await registerSyncIfSupported();
+
+        return {
+          id:                  '',
+          noWasteDetected:     false,
+          itemName:            '',
+          aiAnswer:            null,
+          isCorrect:           false,
+          pointsEarned:        0,
+          newlyUnlockedBadges: [],
+          completedMissions:   [],
+          description:         null,
+          queued:              true,
+        };
+      }
+
+      // If it's the last attempt and we still failed, throw the error
+      if (attempt === MAX_ATTEMPTS) {
+        throw lastError;
+      }
     }
-
-    throw err;
   }
+
+  throw lastError ?? new Error('Unknown classification error');
 };
