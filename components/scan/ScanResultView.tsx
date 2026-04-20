@@ -13,6 +13,7 @@ interface ScanResult {
 
 interface ScanResultViewProps {
   scanResult: ScanResult;
+  image: string | null;
   showBadgeAnim: string | null;
   redirectCountdown: number;
   cooldownSeconds: number;
@@ -21,6 +22,7 @@ interface ScanResultViewProps {
 
 const ScanResultView: React.FC<ScanResultViewProps> = ({
   scanResult,
+  image,
   showBadgeAnim,
   redirectCountdown,
   cooldownSeconds,
@@ -54,8 +56,14 @@ const ScanResultView: React.FC<ScanResultViewProps> = ({
         </div>
 
         <div className="relative z-10">
-          <div className={`w-28 h-28 mx-auto rounded-3xl flex items-center justify-center shadow-2xl border-4 border-white/40 mb-6 rotate-3 hover:rotate-0 transition-transform duration-500 text-white ${isCorrect ? 'bg-green-400' : 'bg-red-400'}`}>
-            {isCorrect ? <SvgEcoCelebrate size={56} /> : <SvgThinkLearn size={56} />}
+          <div className="w-32 h-32 mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white/40 mb-6 rotate-3 hover:rotate-0 transition-transform duration-500 bg-black">
+            {image ? (
+              <img src={image} alt="Scanned item" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white">
+                {isCorrect ? <SvgEcoCelebrate size={56} /> : <SvgThinkLearn size={56} />}
+              </div>
+            )}
           </div>
           
           <h2 className="text-3xl font-black text-white tracking-tight leading-tight mb-2 drop-shadow-md">

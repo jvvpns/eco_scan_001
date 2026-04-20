@@ -285,6 +285,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       {step === 'result' && scanResult && (
         <ScanResultView 
           scanResult={scanResult}
+          image={imagePreview}
           showBadgeAnim={showBadgeAnim}
           redirectCountdown={redirectCountdown}
           cooldownSeconds={COOLDOWN_SECONDS}
