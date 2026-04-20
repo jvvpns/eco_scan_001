@@ -18,6 +18,8 @@ import {
   IconUploadAvatar, IconEditProfile, IconClose, IconScan, IconSettings,
   IconChecklist, IconCo2, IconWeight, IconTree
 } from './Icons';
+import * as Visuals from './TutorialVisuals';
+import { SvgEcoFlame } from './TutorialVisuals';
 
 const StatRow: React.FC<{ label: string; value: string | number; icon: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
@@ -157,11 +159,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, currentPage }) =>
               <p className="text-green-100 text-sm font-semibold">@{userStats?.username || 'username'}</p>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30">
-                ⭐ Level {userStats?.level ?? 1}
+              <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30 flex items-center gap-1.5">
+                <Visuals.VisualSparkle size={14} className="text-amber-300" />
+                Level {userStats?.level ?? 1}
               </span>
               <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full border border-white/30">
-                🔥 {userStats?.streak ?? 0} Streak
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
+                <SvgEcoFlame size={16} className="text-orange-500" />
+                <span className="text-orange-600 font-bold text-xs">{userStats?.streak ?? 0} Streak</span>
+              </div>
               </span>
             </div>
           </div>

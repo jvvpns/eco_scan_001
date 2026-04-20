@@ -50,6 +50,7 @@ export const initUserStats = async (
     accuracyChallengeScans: 0,
     accuracyChallengeCorrect: 0,
     scanMasterGoal: 20,
+    lastCountedDate: '',
   };
   await setDoc(ref, initialStats);
 };

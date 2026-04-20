@@ -10,6 +10,7 @@ import {
   IconEcoPoints, IconBadge, IconRecycling, IconStreak,
   IconFlame, IconTarget, IconTrophy, IconAlert, IconRefresh
 } from './Icons';
+import { SvgLock, SvgTrophy, SvgMedal, SvgEcoSeed } from './TutorialVisuals';
 
 // ─── TYPES ────────────────────────────────────────────────────
 
@@ -89,10 +90,16 @@ const MissionsTab: React.FC<{ userMissions: MissionRecord[]; userStats: any }> =
               <div className="flex-1 min-w-0">
                 <p className="font-black text-gray-900 text-sm tracking-tight">{mission.name}</p>
                 <p className="text-gray-400 text-xs font-medium mt-0.5">{mission.description}</p>
-                {isAccuracyChallenge && !liveCompleted && (
+                {isAccuracyChallenge && (
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Accuracy: {accuracy}%</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusLabel.includes('Failed') ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>{statusLabel}</span>
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                      Accuracy: {accuracy}%
+                    </span>
+                    {!liveCompleted && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${statusLabel.includes('Failed') ? 'text-red-600 bg-red-50' : 'text-blue-600 bg-blue-50'}`}>
+                        {statusLabel}
+                      </span>
+                    )}
                   </div>
                 )}
                 {mission.id === 'daily_streak' && !liveCompleted && (
@@ -157,7 +164,7 @@ const BadgesTab: React.FC<{ unlockedBadgeIds: string[]; userStats: any }> = ({ u
               }`}>
               <div className={`w-16 h-16 rounded-full flex items-center justify-center text-4xl shadow-inner ${isUnlocked ? 'bg-amber-100' : 'bg-gray-200'
                 }`}>
-                {isUnlocked ? badge.icon : '🔒'}
+                {isUnlocked ? badge.icon : <SvgLock size={32} className="text-gray-400" />}
               </div>
               <p className={`font-black text-sm tracking-tight mt-1 ${isUnlocked ? 'text-gray-900' : 'text-gray-400'}`}>{badge.name}</p>
               <p className={`text-[11px] leading-tight font-medium ${isUnlocked ? 'text-gray-500' : 'text-gray-400'}`}>{badge.description}</p>
@@ -235,7 +242,7 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
         </div>
       ) : entries.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12">
-          <span className="text-5xl">🌿</span>
+          <span className="text-5xl"><SvgEcoSeed size={64} className="text-green-500" /></span>
           <p className="text-gray-600 font-bold text-sm text-center">No active players yet.<br /><span className="text-gray-400 font-normal text-xs">Be the first to scan and lead the board!</span></p>
         </div>
       ) : (
@@ -254,7 +261,9 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
                       <div className="w-14 h-14 rounded-full p-1 bg-gradient-to-tr from-gray-300 to-gray-100">
                         <img src={av} className="w-full h-full rounded-full object-cover border-2 border-white shadow" />
                       </div>
-                      <span className="absolute -bottom-1 -right-1 text-base bg-white rounded-full shadow-sm w-6 h-6 flex items-center justify-center border border-gray-50">🥈</span>
+                      <span className="absolute -bottom-1 -right-1 text-base bg-white rounded-full shadow-sm w-6 h-6 flex items-center justify-center border border-gray-50">
+                        <SvgMedal size={14} className="text-gray-400" />
+                      </span>
                     </div>
                     <p className={`text-[10px] font-black truncate max-w-[70px] text-center ${isCurrent ? 'text-indigo-600' : 'text-gray-700'}`}>{e.username ? `@${e.username}` : e.displayName}</p>
                     <div className="w-full bg-slate-200/80 rounded-t-[1.25rem] h-16 flex items-center justify-center border-t border-x border-slate-300/30">
@@ -274,7 +283,9 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
                       <div className="w-20 h-20 rounded-full p-1.5 bg-gradient-to-tr from-amber-400 to-yellow-200 shadow-amber-200/50 shadow-lg">
                         <img src={av} className="w-full h-full rounded-full object-cover border-2 border-white" />
                       </div>
-                      <span className="absolute -bottom-1 -right-1 text-2xl bg-white rounded-full shadow-md w-9 h-9 flex items-center justify-center border border-amber-50">🥇</span>
+                      <span className="absolute -bottom-1 -right-1 text-2xl bg-white rounded-full shadow-md w-9 h-9 flex items-center justify-center border border-amber-50">
+                        <SvgMedal size={24} className="text-amber-500" />
+                      </span>
                     </div>
                     <p className={`text-xs font-black truncate max-w-[100px] text-center mb-0.5 ${isCurrent ? 'text-indigo-600' : 'text-gray-900'}`}>{e.username ? `@${e.username}` : e.displayName}</p>
                     <div className="w-full bg-gradient-to-b from-amber-400 to-amber-500 rounded-t-[1.5rem] h-24 flex items-center justify-center shadow-md border-t border-x border-white/20">
@@ -294,7 +305,9 @@ const LeaderboardTab: React.FC<{ userId: string }> = ({ userId }) => {
                       <div className="w-12 h-12 rounded-full p-1 bg-gradient-to-tr from-orange-300 to-orange-100">
                         <img src={av} className="w-full h-full rounded-full object-cover border-2 border-white shadow" />
                       </div>
-                      <span className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full shadow-sm w-5 h-5 flex items-center justify-center border border-orange-50">🥉</span>
+                      <span className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full shadow-sm w-5 h-5 flex items-center justify-center border border-orange-50">
+                        <SvgMedal size={12} className="text-orange-500" />
+                      </span>
                     </div>
                     <p className={`text-[10px] font-black truncate max-w-[70px] text-center ${isCurrent ? 'text-indigo-600' : 'text-gray-700'}`}>{e.username ? `@${e.username}` : e.displayName}</p>
                     <div className="w-full bg-orange-100/60 rounded-t-[1.25rem] h-12 flex items-center justify-center border-t border-x border-orange-200/30">
@@ -407,10 +420,10 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, de
       .catch(() => showToast('Failed to load missions. Please try again.', 'error'));
   }, [user, userStats]);
 
-  const tabs: { id: Tab; label: string; emoji: string }[] = [
-    { id: 'missions', label: 'Missions', emoji: '🏆' },
-    { id: 'badges', label: 'Badges', emoji: '🎖️' },
-    { id: 'leaderboard', label: 'Leaderboard', emoji: '🏅' },
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'missions', label: 'Missions' },
+    { id: 'badges', label: 'Badges' },
+    { id: 'leaderboard', label: 'Leaderboard' },
   ];
 
 
@@ -423,7 +436,9 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, de
       <div className="bg-green-500 rounded-b-[2rem] px-6 pt-12 pb-6 shadow-sm relative overflow-hidden shrink-0">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
         <div className="relative z-10">
-          <h1 className="text-white font-black text-2xl tracking-tight">EcoMissions 🏆</h1>
+          <h1 className="text-white font-black text-2xl tracking-tight flex items-center gap-2">
+            EcoMissions <SvgTrophy size={28} className="text-amber-300" />
+          </h1>
           <p className="text-green-100 text-sm font-medium mt-1">Complete challenges, earn EcoPoints</p>
         </div>
       </div>
@@ -437,7 +452,7 @@ const MissionsPage: React.FC<MissionsPageProps> = ({ onNavigate, currentPage, de
                 ? 'bg-green-500 text-white shadow-sm shadow-green-200/50'
                 : 'text-gray-500 hover:text-gray-800'
                 }`}>
-              {tab.emoji} {tab.label}
+              {tab.label}
             </button>
           ))}
         </div>

@@ -12,6 +12,7 @@ import {
   IconTarget, IconTrophy, IconAlert, IconChecklist,
   IconCo2, IconWeight, IconTree, IconSpecialWaste, IconResidual
 } from './Icons';
+import { SvgEcoWave, SvgLeafBulb, SvgEcoBin, SvgEmptyMailbox } from './TutorialVisuals';
 
 // ─── PROPS ────────────────────────────────────────────────────
 
@@ -500,7 +501,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
               {greeting},
             </p>
             <h1 className="text-white font-black text-2xl tracking-tight">
-              {user?.displayName ? user.displayName.split(' ')[0] : 'Eco Warrior'} 👋
+              {user?.displayName ? user.displayName.split(' ')[0] : 'Eco Warrior'} 
+              <SvgEcoWave size={24} className="inline-block ml-1 text-amber-500" />
             </h1>
           </div>
           <button 
@@ -543,7 +545,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="bg-white rounded-[1.25rem] p-4 shadow-sm shadow-gray-200/50 border border-amber-100 flex gap-4 items-start relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-100/50 to-transparent rounded-bl-full pointer-events-none" />
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <span className="text-xl">💡</span>
+              <span className="text-xl"><SvgLeafBulb size={24} className="text-amber-500" /></span>
             </div>
             <div className="flex-1 pt-0.5">
               <p className="text-gray-900 font-bold text-sm">Daily Eco Tip</p>
@@ -643,7 +645,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           ) : (
             <div className="bg-white rounded-[1.25rem] p-8 flex flex-col items-center gap-3 shadow-sm border border-gray-100 border-dashed">
-              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-3xl mb-1">🗑️</div>
+              <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center text-3xl mb-1">
+                <SvgEcoBin size={36} className="text-green-600" />
+              </div>
               <p className="text-gray-700 font-bold text-sm">No scans yet</p>
               <p className="text-gray-400 text-xs text-center font-medium max-w-[200px]">
                 Tap the scan button below to classify your first item!
@@ -726,7 +730,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 })
               ) : (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">
-                  <div className="text-5xl opacity-40">📭</div>
+                  <div className="text-5xl opacity-40"><SvgEmptyMailbox size={64} className="text-gray-400" /></div>
                   <p className="text-gray-400 font-bold text-sm">No scans found in your history.</p>
                 </div>
               )}

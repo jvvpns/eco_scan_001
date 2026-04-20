@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   getUserStats,
   updateUserStats,
@@ -8,6 +9,7 @@ import {
 } from './firestoreService';
 import { addNotification } from './notificationService';
 import { UserStats, GarbageType } from '../types';
+import * as Visuals from '../components/TutorialVisuals';
 
 // ─── CONSTANTS ────────────────────────────────────────────────
 
@@ -31,21 +33,21 @@ export const BADGES = [
     id: 'first_steps',
     name: 'First Steps',
     description: 'Complete your first scan',
-    icon: '🌱',
+    icon: <Visuals.SvgEcoSeed size={48} className="text-green-500" />,
     check: (stats: UserStats) => stats.totalScans >= 1,
   },
   {
     id: 'streak_master',
     name: 'Streak Master',
     description: 'Get 5 correct answers in a row',
-    icon: '🔥',
+    icon: <Visuals.SvgEcoFlame size={48} className="text-orange-500" />,
     check: (stats: UserStats) => stats.streak >= 5,
   },
   {
     id: 'accuracy_pro',
     name: 'Accuracy Pro',
     description: 'Achieve 80% accuracy with 10+ scans',
-    icon: '🎯',
+    icon: <Visuals.SvgTarget size={48} className="text-blue-500" />,
     check: (stats: UserStats) =>
       stats.totalScans >= 10 &&
       stats.totalScans > 0 &&
@@ -55,21 +57,21 @@ export const BADGES = [
     id: 'eco_warrior',
     name: 'Eco Warrior',
     description: 'Reach Level 5',
-    icon: '⚡',
+    icon: <Visuals.VisualSparkle size={48} className="text-amber-500" />,
     check: (stats: UserStats) => stats.level >= 5,
   },
   {
     id: 'master_classifier',
     name: 'Master Classifier',
     description: 'Complete 50 scans',
-    icon: '🏆',
+    icon: <Visuals.SvgTrophy size={48} className="text-amber-500" />,
     check: (stats: UserStats) => stats.totalScans >= 50,
   },
   {
     id: 'perfectionist',
     name: 'Perfectionist',
     description: 'Get 10 correct answers in a row',
-    icon: '💎',
+    icon: <Visuals.SvgMedal size={48} className="text-amber-600" />,
     check: (stats: UserStats) => stats.streak >= 10,
   },
 ];
@@ -81,7 +83,7 @@ export const MISSIONS = [
     id: 'daily_streak',
     name: 'Daily Streak',
     description: 'Scan at least once per day for 3 consecutive days',
-    icon: '🔥',
+    icon: <Visuals.SvgEcoFlame size={24} className="text-orange-500" />,
     target: 3,
     points: 50,
     getProgress: (stats: UserStats) => stats.streak,
@@ -90,7 +92,7 @@ export const MISSIONS = [
     id: 'accuracy_challenge',
     name: 'Accuracy Challenge',
     description: 'Maintain 75% accuracy over 8 scans',
-    icon: '🎯',
+    icon: <Visuals.SvgTarget size={24} className="text-blue-500" />,
     target: 8,
     points: 100,
     getProgress: (stats: UserStats) => stats.accuracyChallengeScans ?? 0,
@@ -99,7 +101,7 @@ export const MISSIONS = [
     id: 'scan_master',
     name: 'Scan Master',
     description: 'Reach your scanning milestone',
-    icon: '📊',
+    icon: <Visuals.SvgTrophy size={24} className="text-amber-500" />,
     target: 20, // Initial target
     points: 100,
     getProgress: (stats: UserStats) => stats.correctScans,

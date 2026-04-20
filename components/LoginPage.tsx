@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PilotBrandIcon, IconProfile, IconSearch } from './Icons';
+import { SvgEcoWave, SvgEcoSeed } from './TutorialVisuals';
 import { loginUser, registerUser } from '../services/authService';
 import { initUserStats } from '../services/firestoreService';
 
@@ -175,7 +176,11 @@ const LoginPage: React.FC = () => {
       <div className="bg-white rounded-t-[2.5rem] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] px-8 pt-10 pb-12 w-full flex-shrink-0 animate-slide-up relative z-20">
         <div className="w-full max-w-sm mx-auto">
           <h2 className="text-2xl font-black text-gray-900 text-center mb-8 tracking-tight">
-            {mode === 'login' ? 'Welcome Back 👋' : 'Create Account 🌱'}
+            {mode === 'login' ? (
+              <span className="flex items-center justify-center gap-2">Welcome Back <SvgEcoWave size={24} className="text-amber-500" /></span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">Create Account <SvgEcoSeed size={24} className="text-green-500" /></span>
+            )}
           </h2>
 
           {/* LOGIN FORM */}

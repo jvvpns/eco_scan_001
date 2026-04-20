@@ -68,7 +68,7 @@ const MISSIONS = [
   },
   {
     id: 'scan_master',
-    target: 20, 
+    target: 20,
     points: 100,
     getProgress: (stats: UserStats) => stats.correctScans,
   },
@@ -118,15 +118,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     uid = decoded.uid;
   } catch (err: any) {
     console.error('VERIFY ID TOKEN ERROR:', err.message || err);
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: 'Invalid or expired token',
-      debug: process.env.NODE_ENV === 'development' ? err.message : undefined 
+      debug: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 
   // ── 2. Validate request body ───────────────────────────────
-  const { imageBase64, userAnswer, thumbnailBase64 } = req.body as { 
-    imageBase64?: string; 
+  const { imageBase64, userAnswer, thumbnailBase64 } = req.body as {
+    imageBase64?: string;
     userAnswer?: string;
     thumbnailBase64?: string;
   };
@@ -173,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: [{
         role: 'user',
         parts: [
@@ -232,9 +232,34 @@ When uncertain between two categories, choose the one that poses the greater env
     });
 
     geminiResult = JSON.parse(response.text ?? '{}');
-  } catch (err) {
-    console.error('Gemini error:', err);
-    return res.status(502).json({ error: 'AI classification failed. Please try again.' });
+  } catch (err: any) {
+    console.error('CRITICAL Gemini API Error:', {
+      message: err.message,
+      status: err.status,
+    });
+
+    let friendlyMessage = 'AI classification failed. This might be a transient glitch. Please try again.';
+
+    try {
+      // If the error message is stringified JSON (common in @google/genai SDK)
+      if (err.message && err.message.startsWith('{')) {
+        const parsed = JSON.parse(err.message);
+        const subError = parsed.error;
+        if (subError?.status === 'RESOURCE_EXHAUSTED' || subError?.code === 429) {
+          friendlyMessage = 'Daily AI scan limit reached (Free Tier). Please try again tomorrow or upgrade your plan.';
+        } else if (subError?.message) {
+          friendlyMessage = `AI Error: ${subError.message}`;
+        }
+      } else if (err.message?.includes('SAFETY')) {
+        friendlyMessage = 'Content blocked by AI safety filters. Please scan a waste item.';
+      } else if (err.message) {
+        friendlyMessage = err.message;
+      }
+    } catch {
+      // Fallback to default if parsing fails
+    }
+
+    return res.status(502).json({ error: friendlyMessage });
   }
 
   // ── 5. No waste detected — return early, no points, no DB write ──
@@ -263,7 +288,7 @@ When uncertain between two categories, choose the one that poses the greater env
   const yesterday = getYesterdayString();
   let newStreak = currentStats.streak ?? 0;
   let newLastCountedDate = currentStats.lastCountedDate ?? '';
-  
+
   if (newLastCountedDate !== today) {
     if (newLastCountedDate === yesterday) {
       newStreak += 1;
@@ -306,7 +331,7 @@ When uncertain between two categories, choose the one that poses the greater env
   for (const mission of MISSIONS) {
     const prev = existingMissions.find(m => m.id === mission.id);
     const wasCompleted = prev?.completed ?? false;
-    
+
     // Skip if already completed (except Scan Master which is progressive)
     if (wasCompleted && mission.id !== 'scan_master') continue;
 

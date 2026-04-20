@@ -11,6 +11,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
 import { logoutUser } from './services/authService';
 import BottomNav from './components/BottomNav';
+import ReloadPrompt from './components/ReloadPrompt';
+import AppTutorial from './components/AppTutorial';
 
 // ─── PAGE TRANSITION DURATION (ms) ───────────────────────────
 const TRANSITION_MS = 220;
@@ -179,6 +181,8 @@ function App() {
       )}
       
       <PWAInstallBanner />
+      <ReloadPrompt />
+      <AppTutorial />
     </div>
   );
 }
