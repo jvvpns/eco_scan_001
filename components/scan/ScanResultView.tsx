@@ -16,7 +16,7 @@ interface ScanResultViewProps {
   showBadgeAnim: string | null;
   redirectCountdown: number;
   cooldownSeconds: number;
-  onBack: () => void;
+  onScanComplete: () => void;
 }
 
 const ScanResultView: React.FC<ScanResultViewProps> = ({
@@ -24,7 +24,7 @@ const ScanResultView: React.FC<ScanResultViewProps> = ({
   showBadgeAnim,
   redirectCountdown,
   cooldownSeconds,
-  onBack,
+  onScanComplete,
 }) => {
   const { isCorrect, userAnswer, aiAnswer, itemName, pointsEarned, newlyUnlockedBadges } = scanResult;
   const unlockedBadge = newlyUnlockedBadges.length ? BADGES.find(b => b.id === newlyUnlockedBadges[0]) : null;
@@ -119,7 +119,7 @@ const ScanResultView: React.FC<ScanResultViewProps> = ({
               Next scan available in <span className="text-gray-900">{cooldownSeconds}s</span>
             </p>
           </div>
-          <button onClick={onBack}
+          <button onClick={onScanComplete}
             className="w-full bg-gray-900 hover:bg-black text-white font-bold py-4 rounded-2xl active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
             Back to Dashboard
             <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px]">{redirectCountdown}s</span>

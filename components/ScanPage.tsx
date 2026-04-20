@@ -133,13 +133,17 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
     setRedirectCountdown(REDIRECT_SECONDS);
     const interval = setInterval(() => {
       setRedirectCountdown(prev => {
-        if (prev <= 1) { clearInterval(interval); onBack(); return 0; }
+        if (prev <= 1) {
+          clearInterval(interval);
+          onScanComplete(); // Navigate to Dashboard and trigger refresh
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [step, scanResult, onBack]);
+  }, [step, scanResult, onScanComplete]);
 
   // ── Capture ───────────────────────────────────────────────
   const handleCapture = () => {
@@ -190,7 +194,8 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
       startCooldown(user.uid);
       setCooldownLeft(COOLDOWN_SECONDS);
       await refreshStats();
-      onScanComplete();
+      // Note: onScanComplete() is called after the result screen
+      // auto-redirect countdown ends (see useEffect above)
 
       setScanResult({
         isCorrect:           result.isCorrect,
@@ -283,7 +288,7 @@ const ScanPage: React.FC<ScanPageProps> = ({ onScanComplete, onBack }) => {
           showBadgeAnim={showBadgeAnim}
           redirectCountdown={redirectCountdown}
           cooldownSeconds={COOLDOWN_SECONDS}
-          onBack={onBack}
+          onScanComplete={onScanComplete}
         />
       )}
     </div>
